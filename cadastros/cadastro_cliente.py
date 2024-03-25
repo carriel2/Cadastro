@@ -1,6 +1,26 @@
 import re
 import os.path
 
+# Função para verificar se o arquivo existe e escrever o cabeçalho se necessário
+def verificar_arquivo(nome_arquivo):
+    diretorio = "arquivos_cadastro"
+    if not os.path.exists(diretorio):
+        os.makedirs(diretorio)
+    
+    caminho_arquivo = os.path.join(diretorio, nome_arquivo)
+    if not os.path.isfile(caminho_arquivo):
+        with open(caminho_arquivo, 'w') as arquivo:
+            arquivo.write("CADASTRO CLIENTE\n")
+            
+# Função para adicionar informações ao arquivo
+def adicionar_informacoes_arquivo(nome_arquivo, id_cliente, nome_cliente, cpf_cliente, data_nasc, infos_adc):
+    with open(nome_arquivo, 'a') as arquivo:
+        id_formatado = id_cliente.zfill(10)
+        nome_formatado = nome_cliente.ljust(40) 
+        data_formatada = data_nasc.replace('/', '')
+        informacoes = f"{id_formatado}{nome_formatado}{cpf_cliente}{data_formatada}{infos_adc}"
+        arquivo.write(f'{informacoes}\n')
+
 # Função para validar o nome do cliente
 def validar_nome(nome):
     return bool(re.match("^[a-zA-Z]{1,40}$", nome))
@@ -12,7 +32,7 @@ def validar_cpf(cpf_cliente):
     # Verificar se o CPF possui 11 dígitos ou 10 dígitos com 'X' no final
     if len(cpf_cliente) == 11 or (len(cpf_cliente) == 10 and cpf_cliente[-1] == 'X'):
         # Verificar se o CPF já existe no arquivo
-        with open("cadastro_cliente.txt", "r") as arquivo:
+        with open("arquivos_cadastro/cadastro_cliente.txt", "r") as arquivo:
             for linha in arquivo:
                 if cpf_cliente in linha:
                     print("CPF já cadastrado.")
@@ -60,25 +80,10 @@ def validar_nasc(data_nasc):
 def validar_info(outras_infos):
     return len(outras_infos) <= 30
 
-# Função para adicionar informações ao arquivo
-def adicionar_informacoes_arquivo(nome_arquivo, id_cliente, nome_cliente, cpf_cliente, data_nasc, infos_adc):
-    with open(nome_arquivo, 'a') as arquivo:
-        id_formatado = id_cliente.zfill(10)
-        nome_formatado = nome_cliente.ljust(40) 
-        data_formatada = data_nasc.replace('/', '')
-        informacoes = f"{id_formatado}{nome_formatado}{cpf_cliente}{data_formatada}{infos_adc}"
-        arquivo.write(f'{informacoes}\n')
-
-# Função para verificar se o arquivo existe e escrever o cabeçalho se necessário
-def verificar_arquivo(nome_arquivo):
-    if not os.path.isfile(nome_arquivo):
-        with open(nome_arquivo, 'w') as arquivo:
-            arquivo.write("CADASTRO CLIENTE\n")
-
 # Função para cadastrar o ID do cliente
 def proximo_id():
     # Abre o arquivo para leitura
-    with open("cadastro_cliente.txt", "r") as arquivo:
+    with open("arquivos_cadastro/cadastro_cliente.txt", "r") as arquivo:
         # Lê todas as linhas do arquivo
         linhas = arquivo.readlines()
         # Se o arquivo estiver vazio, retorna o primeiro ID possível
@@ -134,13 +139,15 @@ def outras_infos():
 
 # Função principal para o cadastro_cliente completo
 def cadastrar_cliente():
-    verificar_arquivo("cadastro_cliente.txt")  
+    verificar_arquivo("cadastro_cliente.txt")
+      
     id_cliente = cadastro_id()
     nome_cliente = cadastro_cliente()
     cpf_cliente = cadastro_cpf()
     data_nasc = cadastro_nasc()
     infos_adc = outras_infos()
-    adicionar_informacoes_arquivo("cadastro_cliente.txt", id_cliente, nome_cliente, cpf_cliente, data_nasc, infos_adc)
+    
+    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_cliente.txt", id_cliente, nome_cliente, cpf_cliente, data_nasc, infos_adc)
     print(f"Cliente cadastrado: ID: {id_cliente}, Nome: {nome_cliente}, CPF: {cpf_cliente}, Data de nascimento: {data_nasc}, Inf. Adicionais: {infos_adc}")
 
 # Chamada da função para cadastrar um cliente
