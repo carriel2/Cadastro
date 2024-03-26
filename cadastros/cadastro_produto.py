@@ -2,8 +2,10 @@ import os
 import re
 import random
 
-# Função para verificar se o arquivo existe e escrever o cabeçalho se necessário
 def verificar_arquivo(nome_arquivo):
+    """
+    Verifica se o arquivo existe e cria o cabeçalho se necessário.
+    """
     diretorio = "arquivos_cadastro"
     if not os.path.exists(diretorio):
         os.makedirs(diretorio)
@@ -11,45 +13,62 @@ def verificar_arquivo(nome_arquivo):
     caminho_arquivo = os.path.join(diretorio, nome_arquivo)
     if not os.path.isfile(caminho_arquivo):
         with open(caminho_arquivo, 'w') as arquivo:
-            arquivo.write("CADASTRO PEDIDO\n")
-
-# Função para adicionar as informacoes no arquivo txt
+            arquivo.write("CADASTRO PRODUTO\n")
+            
 def adicionar_informacoes_arquivo(nome_arquivo, id_armazenado, descricao_armazenada, estoque_armazenado, preco_armazenado):
+    """
+    Adiciona as informações no arquivo TXT.
+    """
     with open(nome_arquivo, 'a') as arquivo:
-        informacoes = f'{id_armazenado}{descricao_armazenada}{estoque_armazenado}{preco_armazenado}'
+        informacoes = f'{id_armazenado}{descricao_armazenada.ljust(50)}{estoque_armazenado.ljust(10)}{preco_armazenado}'
         arquivo.write(f'{informacoes}\n')
-        
-# Função para validar a  descrição do produto
+
 def validar_produto(desc_produto):
-    
+    """
+    Valida a descrição do produto.
+    """
     return bool(re.match("^[a-zA-Z0-9]{1,50}$", desc_produto))
 
-# Função para validar o estoque de produtos disponivel
 def validar_estoque(qtd_estoque):
-    qtd_estoque = re.sub(r'[^0-9]', '', qtd_estoque)
-    if len(qtd_estoque) <= 10:
+    """
+    Valida a quantidade de produtos disponível em estoque.
+    """
+    if re.match(r'^[0-9]{1,10}$', qtd_estoque):
         return qtd_estoque
     else:
         print("Quantidade inválida.")
-        
-def validar_preco(preco):
-    preco = re.sub(r'[^0-9,]', '', preco)
-    preco_sem_virgula = preco.replace(',', '')
-    if preco_sem_virgula and len(preco_sem_virgula) <= 10 and preco_sem_virgula != '0':
-        return preco
-    else:
-        print("Preço inválido.")
-        
-# Função para gerar de forma aleatória o código do produto
-def gerar_id():
-    numero_aleatorio = random.randint(0, 10**5 - 1)
-    # Adicionar o prefixo "010" ao número gerado
-    id_aleatorio = "1122" + str(numero_aleatorio).zfill(5)
+        return None
 
+def validar_preco(preco):
+    """
+    Valida o preço do produto.
+    """
+    try:
+        preco_float = float(preco.replace(',', '.')) 
+        if preco_float > 0 and len(preco) <= 30:
+            return preco
+        else:
+            if preco_float <= 0:
+                print("O preço deve ser maior que zero.")
+            else:
+                print("Preço inválido.")
+            return None
+    except ValueError:
+        print("Preço inválido.")
+        return None
+
+def gerar_id():
+    """
+    Gera um código de produto aleatório.
+    """
+    numero_aleatorio = random.randint(0, 10**5 - 1)
+    id_aleatorio = "1122" + str(numero_aleatorio).zfill(5)
     return id_aleatorio
 
-# Função para informar a descrição do produto
 def desc_produto():
+    """
+    Solicita a descrição do produto ao usuário.
+    """
     while True:
         descricao_produto = input("Insira a descrição do produto (Máx 50 caracteres e sem espaço): ").upper()
         if validar_produto(descricao_produto):
@@ -57,26 +76,30 @@ def desc_produto():
         else:
             print("Insira uma descrição válida!")
 
-#Função para informar quantidade disponivel em estoque
 def qtd_estoque():
+    """
+    Solicita a quantidade de produtos disponíveis em estoque ao usuário.
+    """
     while True:
         estoque = input("Insira a quantidade de produtos disponíveis em estoque (Máx 10 caracteres): ")
-        if validar_estoque(estoque):
-            return estoque
-        else:
-            print("Insira uma quantidade válida.")
-            
-# Função para informar o preço unitário do produto            
-def preco_unitario():
-    while True:
-        preco = input("Insira o preço unitário do produto (Máx 10 caracteres): ")
-        if validar_preco(preco):
-            return preco
-        else:
-            print("Insira um preço válido.")
+        estoque_validado = validar_estoque(estoque)
+        if estoque_validado is not None:
+            return estoque_validado
 
-# Função para cadastro final dos itens no txt
-def cadastrar_pedido():
+def preco_unitario():
+    """
+    Solicita o preço unitário do produto ao usuário.
+    """
+    while True:
+        preco = input("Insira o preço unitário do produto (Máx 10 caracteres): ").strip()
+        preco_validado = validar_preco(preco)
+        if preco_validado is not None:
+            return preco_validado
+
+def cadastrar_produto():
+    """
+    Realiza o cadastro dos produtos.
+    """
     verificar_arquivo("cadastro_produto.txt")
     
     id_armazenado = gerar_id()
@@ -86,6 +109,5 @@ def cadastrar_pedido():
     
     adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_produto.txt", id_armazenado, descricao_armazenada, estoque_armazenado, preco_armazenado)
     print(f"ID:{id_armazenado} Descrição Produto:{descricao_armazenada} Estoque: {estoque_armazenado} Preço Unitário: {preco_armazenado}")
-cadastrar_pedido()
 
-
+cadastrar_produto()
