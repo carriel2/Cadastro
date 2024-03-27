@@ -1,6 +1,7 @@
 import os
 import re 
 import random
+import datetime 
 
 def verificar_arquivo(nome_arquivo):
     """
@@ -15,12 +16,15 @@ def verificar_arquivo(nome_arquivo):
         with open(caminho_arquivo, 'w') as arquivo:
             arquivo.write("CADASTRO PEDIDO\n")
             
-def adicionar_informacoes_arquivo(nome_arquivo, id_pedido,cliente_id ):
+def adicionar_informacoes_arquivo(nome_arquivo, id_pedido,cliente_id,pedido_data ):
     """
     Adiciona as informações no arquivo TXT.
     """
-    with open(nome_arquivo, 'a') as arquivo:
-        informacoes =  f"{id_pedido}{cliente_id}"
+    
+    status = 'SEPARACAO'
+    with open(nome_arquivo, 'a') as arquivo:    
+        pedido_data_sem_barras = pedido_data.replace('/', '')
+        informacoes =  f"{id_pedido}{cliente_id}{pedido_data_sem_barras}{status}"
         arquivo.write(f'{informacoes}\n')
         
 def validar_cliente_id(id_cliente):
@@ -35,17 +39,42 @@ def validar_cliente_id(id_cliente):
             
     return False
     
+def validar_data_pedido(data_pedido):
+    """
+    Confere se a data do pedido é uma data válida (dd/mm/aaaa).
+    """
+    try:
+        if not re.match(r'^\d{2}/\d{2}/\d{4}$', data_pedido):
+            return False
+        
+        dia, mes, ano = map(int, data_pedido.split('/'))
+        
+        if not (1 <= dia <= 31 and 1 <= mes <= 12 and ano >= datetime.datetime.now().year and mes >= datetime.datetime.now().month):
+            return False
+        
+        hoje = datetime.datetime.now().date()
+        data_formatada = datetime.datetime(ano, mes, dia).date()
+        tres_dias_frente = hoje + datetime.timedelta(days=3)
+        if hoje <= data_formatada <= tres_dias_frente:
+            return True
+        else:
+            return False
+    except ValueError:
+        return False
+
 def gerar_id_pedido():
     """
     Gera um código de pedido aleatório.
     """
-    numero_aleatorio = random.randint(0, 10**4 - 1)
-    id_aleatorio = "15221" + str(numero_aleatorio).zfill(4)
+    numero_aleatorio = random.randint(0, 10**5 - 1)
+    id_aleatorio = "15221" + str(numero_aleatorio).zfill(5)
     
     return id_aleatorio
 
 def id_cliente():
-    
+    """
+    Realiza a confirmação se o id do cliente já está cadastrado ou não no TXT.
+    """
     id_cliente = input("Insira o ID do cliente registrado (Máx 10 caracteres) ")
     
     if validar_cliente_id(id_cliente):
@@ -53,18 +82,41 @@ def id_cliente():
         return id_cliente
     else:
         print("Cliente não encontrado, certifique-se de cadastrá-lo!")
+        exit()
+        
+def data_pedido():
+    """
+    Realiza o cadastro da data do pedido baseado no DateTime. 
+    """
+    while True:
+        data_pedido = input("Insira a data de cadastro do pedido (dd/mm/aaaa e no máximo 3 dias à frente): ")
+        
+        if validar_data_pedido(data_pedido):
+            print("Cadastro da data realizado!")
+            return data_pedido
+        else:
+            print("Data inválida, certifique-se dela atender a todas as condições!")
+            
+# FUNCAO DE TOTAL DO PEDIDO DEVE SER FEITA DEPOIS DA FUNCAO DE QUANTIDADE DE ITENS NO PEDIDO!            
+# NAO ESQUECER
+
+
+
+
 
 def cadastrar_pedido():
     """
-    Realiza o cadastro completo do pedido
+    Mostra no terminal que as informações foram cadastradas.
+    Repassa para o arquivo de adicionar informações, o caminho e quais as variaveis que devem ser armazenadas
+    na ordem correta.
     """
     verificar_arquivo("cadastro_pedido.txt")
     
     id_pedido = gerar_id_pedido()
     cliente_id = id_cliente()
+    pedido_data = data_pedido()
     
-
-    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_pedido.txt", id_pedido,cliente_id)
-    print(f"ID Pedido: {id_pedido} ID Cliente: {cliente_id}")
+    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_pedido.txt", id_pedido,cliente_id,pedido_data)
+    print(f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data}")
      
 cadastrar_pedido()

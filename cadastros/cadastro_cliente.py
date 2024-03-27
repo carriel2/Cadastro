@@ -77,7 +77,7 @@ def validar_nasc(data_nasc):
     else:
         return False
 
-def validar_info(outras_infos):
+def validar_info(outras_infos):     
     """
     Valida as informações adicionais do cliente.
     """
@@ -99,7 +99,7 @@ def proximo_id():
 
 def cadastro_id():
     """
-    Realiza o cadastro do ID do cliente.
+    Realiza o cadastro do ID do cliente. POSIÇÃO 1-10
     """
     return proximo_id()
    
@@ -120,7 +120,7 @@ def cadastro_cliente():
 
 def cadastro_nome():
     """
-    Realiza o cadastro do nome do cliente.
+    Realiza o cadastro do nome do cliente. POSIÇÃO 11-50
     """
     while True:
         nome_cliente = input("Insira o nome do cliente (máximo de 40 caracteres e sem espaços): ").upper()
@@ -131,7 +131,7 @@ def cadastro_nome():
 
 def cadastro_cpf():
     """
-    Realiza o cadastro do CPF do cliente.
+    Realiza o cadastro do CPF do cliente. POSIÇÃO 51-62
     """
     while True:
         cpf_cliente = input("Digite o CPF do cliente: ").replace('.', '').replace('-', '')
@@ -141,7 +141,7 @@ def cadastro_cpf():
 
 def cadastro_nasc():
     """
-    Realiza o cadastro da data de nascimento do cliente.
+    Realiza o cadastro da data de nascimento do cliente. POSIÇÃO 62-70
     """
     while True:  
         data_nasc = input("Digite sua data de nascimento (no formato dd/mm/aaaa): ").replace(' ', '')
@@ -152,7 +152,7 @@ def cadastro_nasc():
 
 def cadastro_info():
     """
-    Realiza o cadastro das informações adicionais do cliente.
+    Realiza o cadastro das informações adicionais do cliente. POSIÇÃO 70-99
     """
     while True:
         infos_adc = input("Digite as informações adicionais do cliente ").replace(' ', '')
@@ -161,5 +161,4 @@ def cadastro_info():
         else:
             print("Limite de caracteres excedidos. Máx 30 ")
 
-# Chamada da função para cadastrar um cliente
 cadastro_cliente()
