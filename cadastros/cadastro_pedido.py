@@ -102,8 +102,6 @@ def data_pedido():
 
 
 
-
-
 def cadastrar_pedido():
     """
     Mostra no terminal que as informações foram cadastradas.
