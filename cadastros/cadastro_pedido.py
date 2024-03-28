@@ -1,4 +1,4 @@
-import os
+import os.path
 import re 
 import random
 import datetime 
@@ -18,14 +18,30 @@ def verificar_arquivo(nome_arquivo):
             
 def adicionar_informacoes_arquivo(nome_arquivo, id_pedido,cliente_id,pedido_data ):
     """
-    Adiciona as informações no arquivo TXT.
+    Adiciona as informações no arquivo TXT. 
+    STATUS - POSIÇÃO 41 - 50
     """
     
-    status = 'SEPARACAO'
+    status = 'SEPARACAO' 
     with open(nome_arquivo, 'a') as arquivo:    
         pedido_data_sem_barras = pedido_data.replace('/', '')
         informacoes =  f"{id_pedido}{cliente_id}{pedido_data_sem_barras}{status}"
         arquivo.write(f'{informacoes}\n')
+        
+def cadastrar_pedido_txt():
+    """
+    Mostra no terminal que as informações foram cadastradas.
+    Repassa para o arquivo de adicionar informações, o caminho e quais as variaveis que devem ser armazenadas
+    na ordem correta. 
+    """
+    verificar_arquivo("cadastro_pedido.txt")
+    
+    id_pedido = gerar_id_pedido()
+    cliente_id = id_cliente()
+    pedido_data = data_pedido()
+    
+    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_pedido.txt", id_pedido,cliente_id,pedido_data)
+    print(f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data}")
         
 def validar_cliente_id(id_cliente):
     """
@@ -34,6 +50,7 @@ def validar_cliente_id(id_cliente):
     with open('arquivos_cadastro/cadastro_cliente.txt', 'r') as arquivo:
         for linha in arquivo:
             cliente_id = linha[:10].strip()
+            
             if cliente_id == id_cliente:
                 return True
             
@@ -64,7 +81,7 @@ def validar_data_pedido(data_pedido):
 
 def gerar_id_pedido():
     """
-    Gera um código de pedido aleatório.
+    Gera um código de pedido aleatório. POSIÇÃO 1 - 10
     """
     numero_aleatorio = random.randint(0, 10**5 - 1)
     id_aleatorio = "15221" + str(numero_aleatorio).zfill(5)
@@ -73,9 +90,9 @@ def gerar_id_pedido():
 
 def id_cliente():
     """
-    Realiza a confirmação se o id do cliente já está cadastrado ou não no TXT.
+    Realiza a confirmação se o id do cliente já está cadastrado ou não no TXT. POSIÇÃO 11 - 20
     """
-    id_cliente = input("Insira o ID do cliente registrado (Máx 10 caracteres) ")
+    id_cliente = input("Insira o ID do cliente registrado (10 caracteres): ")
     
     if validar_cliente_id(id_cliente):
         print("Cliente confirmado!")
@@ -86,7 +103,7 @@ def id_cliente():
         
 def data_pedido():
     """
-    Realiza o cadastro da data do pedido baseado no DateTime. 
+    Realiza o cadastro da data do pedido baseado no DateTime. - POSIÇÃO 21 - 30
     """
     while True:
         data_pedido = input("Insira a data de cadastro do pedido (dd/mm/aaaa e no máximo 3 dias à frente): ")
@@ -98,23 +115,6 @@ def data_pedido():
             print("Data inválida, certifique-se dela atender a todas as condições!")
             
 # FUNCAO DE TOTAL DO PEDIDO DEVE SER FEITA DEPOIS DA FUNCAO DE QUANTIDADE DE ITENS NO PEDIDO!            
-# NAO ESQUECER
-
-
-
-def cadastrar_pedido():
-    """
-    Mostra no terminal que as informações foram cadastradas.
-    Repassa para o arquivo de adicionar informações, o caminho e quais as variaveis que devem ser armazenadas
-    na ordem correta.
-    """
-    verificar_arquivo("cadastro_pedido.txt")
-    
-    id_pedido = gerar_id_pedido()
-    cliente_id = id_cliente()
-    pedido_data = data_pedido()
-    
-    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_pedido.txt", id_pedido,cliente_id,pedido_data)
-    print(f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data}")
+# NAO ESQUECER POSIÇÃO 31-40
      
-cadastrar_pedido()
+cadastrar_pedido_txt()

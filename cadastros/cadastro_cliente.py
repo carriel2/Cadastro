@@ -1,5 +1,5 @@
-import re
 import os.path
+import re
 
 def verificar_arquivo(nome_arquivo):
     """
@@ -24,6 +24,23 @@ def adicionar_informacoes_arquivo(nome_arquivo, id_cliente, nome_cliente, cpf_cl
         data_formatada = data_nasc.replace('/', '')
         informacoes = f"{id_formatado}{nome_formatado}{cpf_cliente}{data_formatada}{infos_adc}"
         arquivo.write(f'{informacoes}\n')
+        
+def cadastro_cliente_txt():
+    """
+    Mostra no terminal que as informações foram cadastradas.
+    Repassa para o arquivo de adicionar informações, o caminho e quais as variaveis que devem ser armazenadas
+    na ordem correta. 
+    """
+    verificar_arquivo("cadastro_cliente.txt")
+      
+    id_cliente = cadastro_id()
+    nome_cliente = cadastro_nome()
+    cpf_cliente = cadastro_cpf()
+    data_nasc = cadastro_nasc()
+    infos_adc = cadastro_info()
+    
+    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_cliente.txt", id_cliente, nome_cliente, cpf_cliente, data_nasc, infos_adc)
+    print(f"Cliente cadastrado: ID: {id_cliente}, Nome: {nome_cliente}, CPF: {cpf_cliente}, Data de nascimento: {data_nasc}, Inf. Adicionais: {infos_adc}")
 
 def validar_nome(nome):
     """
@@ -102,21 +119,6 @@ def cadastro_id():
     Realiza o cadastro do ID do cliente. POSIÇÃO 1-10
     """
     return proximo_id()
-   
-def cadastro_cliente():
-    """
-    Realiza o cadastro completo do cliente.
-    """
-    verificar_arquivo("cadastro_cliente.txt")
-      
-    id_cliente = cadastro_id()
-    nome_cliente = cadastro_nome()
-    cpf_cliente = cadastro_cpf()
-    data_nasc = cadastro_nasc()
-    infos_adc = cadastro_info()
-    
-    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_cliente.txt", id_cliente, nome_cliente, cpf_cliente, data_nasc, infos_adc)
-    print(f"Cliente cadastrado: ID: {id_cliente}, Nome: {nome_cliente}, CPF: {cpf_cliente}, Data de nascimento: {data_nasc}, Inf. Adicionais: {infos_adc}")
 
 def cadastro_nome():
     """
@@ -161,4 +163,4 @@ def cadastro_info():
         else:
             print("Limite de caracteres excedidos. Máx 30 ")
 
-cadastro_cliente()
+cadastro_cliente_txt()

@@ -1,7 +1,7 @@
-### PASTA EXCLUSIVA PARA ARMAZENAMENTO DOS ARQUIVOS TXT A SEREM ESCRITOS.
+### Pasta exclusiva para armazenamento dos arquivos txt a serem escritos.
 
-### NÃO EXCLUIR/MODIFICAR A PASTA PARA NÃO OCORRER PROBLEMAS NA FUNCIONALIDADE DO CÓDIGO.
+### Não excluir/modificar a pasta para não ocorrer problemas na funcionalidade do código.
 
-### OS ARQUIVOS TXT SERÃO CRIADOS E ARMAZENADOS AQUI DE FORMA AUTOMÁTICA AO RODAR O CÓDIGO.
+### Os arquivos txt serão criados e armazenados aqui de forma automática ao rodar o código.
 
-### CASO HAJA ALGUM PROBLEMA COM OS TXT, ELES PODEM SER APAGADOS E REGISTRADOS NOVAMENTE, PORÉM TODOS OS DADOS ARMAZENADOS NELE SERÃO PERDIDOS.
+### Caso haja algum problema com os TXT, eles podem ser apagados e registrados novamente, porém todos os dados armazenados nele serao perdidos.

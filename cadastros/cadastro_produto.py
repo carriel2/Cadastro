@@ -1,4 +1,4 @@
-import os
+import os.path
 import re
 import random
 
@@ -22,6 +22,22 @@ def adicionar_informacoes_arquivo(nome_arquivo, id_armazenado, descricao_armazen
     with open(nome_arquivo, 'a') as arquivo:
         informacoes = f'{id_armazenado}{descricao_armazenada.ljust(50)}{estoque_armazenado.ljust(10)}{preco_armazenado}'
         arquivo.write(f'{informacoes}\n')
+    
+def cadastrar_produto_txt():
+    """
+    Mostra no terminal que as informações foram cadastradas.
+    Repassa para o arquivo de adicionar informações, o caminho e quais as variaveis que devem ser armazenadas
+    na ordem correta. 
+    """
+    verificar_arquivo("cadastro_produto.txt")
+    
+    id_armazenado = gerar_id()
+    descricao_armazenada = desc_produto()
+    estoque_armazenado = qtd_estoque()
+    preco_armazenado = preco_unitario()
+    
+    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_produto.txt", id_armazenado, descricao_armazenada, estoque_armazenado, preco_armazenado)
+    print(f"ID:{id_armazenado} Descrição Produto:{descricao_armazenada} Estoque: {estoque_armazenado} Preço Unitário: {preco_armazenado}")
 
 def validar_produto(desc_produto):
     """
@@ -59,15 +75,15 @@ def validar_preco(preco):
 
 def gerar_id():
     """
-    Gera um código de produto aleatório.
+    Gera um código de produto aleatório. POSIÇÃO 1-10
     """
     numero_aleatorio = random.randint(0, 10**5 - 1)
-    id_aleatorio = "1122" + str(numero_aleatorio).zfill(5)
+    id_aleatorio = "11221" + str(numero_aleatorio).zfill(5)
     return id_aleatorio
 
 def desc_produto():
     """
-    Solicita a descrição do produto ao usuário.
+    Solicita a descrição do produto ao usuário. POSIÇÃO 11 - 60
     """
     while True:
         descricao_produto = input("Insira a descrição do produto (Máx 50 caracteres e sem espaço): ").upper()
@@ -78,7 +94,7 @@ def desc_produto():
 
 def qtd_estoque():
     """
-    Solicita a quantidade de produtos disponíveis em estoque ao usuário.
+    Solicita a quantidade de produtos disponíveis em estoque ao usuário. POSIÇÃO 61 - 70
     """
     while True:
         estoque = input("Insira a quantidade de produtos disponíveis em estoque (Máx 10 caracteres): ")
@@ -88,7 +104,7 @@ def qtd_estoque():
 
 def preco_unitario():
     """
-    Solicita o preço unitário do produto ao usuário.
+    Solicita o preço unitário do produto ao usuário. POSIÇÃO 71 - 80
     """
     while True:
         preco = input("Insira o preço unitário do produto (Máx 10 caracteres): ").strip()
@@ -96,18 +112,4 @@ def preco_unitario():
         if preco_validado is not None:
             return preco_validado
 
-def cadastrar_produto():
-    """
-    Realiza o cadastro dos produtos.
-    """
-    verificar_arquivo("cadastro_produto.txt")
-    
-    id_armazenado = gerar_id()
-    descricao_armazenada = desc_produto()
-    estoque_armazenado = qtd_estoque()
-    preco_armazenado = preco_unitario()
-    
-    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_produto.txt", id_armazenado, descricao_armazenada, estoque_armazenado, preco_armazenado)
-    print(f"ID:{id_armazenado} Descrição Produto:{descricao_armazenada} Estoque: {estoque_armazenado} Preço Unitário: {preco_armazenado}")
-
-cadastrar_produto()
+cadastrar_produto_txt()
