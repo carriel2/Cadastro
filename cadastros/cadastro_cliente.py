@@ -163,4 +163,3 @@ def cadastro_info():
         else:
             print("Limite de caracteres excedidos. Máx 30 ")
 
-cadastro_cliente_txt()

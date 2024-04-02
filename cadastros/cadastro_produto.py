@@ -20,10 +20,10 @@ def adicionar_informacoes_arquivo(nome_arquivo, id_armazenado, descricao_armazen
     Adiciona as informações no arquivo TXT.
     """
     with open(nome_arquivo, 'a') as arquivo:
-        informacoes = f'{id_armazenado}{descricao_armazenada.ljust(50)}{estoque_armazenado.ljust(10)}{preco_armazenado}'
+        informacoes = f'{id_armazenado}{descricao_armazenada.ljust(50, "_")}{estoque_armazenado.ljust(10, "_")}{preco_armazenado}'
         arquivo.write(f'{informacoes}\n')
     
-def cadastrar_produto_txt():
+def cadastro_produto_txt():
     """
     Mostra no terminal que as informações foram cadastradas.
     Repassa para o arquivo de adicionar informações, o caminho e quais as variaveis que devem ser armazenadas
@@ -37,7 +37,7 @@ def cadastrar_produto_txt():
     preco_armazenado = preco_unitario()
     
     adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_produto.txt", id_armazenado, descricao_armazenada, estoque_armazenado, preco_armazenado)
-    print(f"ID:{id_armazenado} Descrição Produto:{descricao_armazenada} Estoque: {estoque_armazenado} Preço Unitário: {preco_armazenado}")
+    print(f"ID: {id_armazenado} Descrição Produto: {descricao_armazenada} Estoque: {estoque_armazenado} Preço Unitário: {preco_armazenado}")
 
 def validar_produto(desc_produto):
     """
@@ -103,7 +103,7 @@ def qtd_estoque():
             return estoque_validado
 
 def preco_unitario():
-    """
+    """ 
     Solicita o preço unitário do produto ao usuário. POSIÇÃO 71 - 80
     """
     while True:
@@ -112,4 +112,4 @@ def preco_unitario():
         if preco_validado is not None:
             return preco_validado
 
-cadastrar_produto_txt()
+cadastro_produto_txt

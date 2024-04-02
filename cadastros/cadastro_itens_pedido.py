@@ -15,12 +15,12 @@ def verificar_arquivo(nome_arquivo):
         with open(caminho_arquivo, 'w') as arquivo:
             arquivo.write("CADASTRO ITENS PEDIDO\n")
 
-def adicionar_informacoes_arquivo(nome_arquivo, pedido_id, produto_id, quantidade):
+def adicionar_informacoes_arquivo(nome_arquivo, pedido_id, produto_id, quantidade,preco_unitario):
     """
     Adiciona as informações ao arquivo.
     """
     with open(nome_arquivo, 'a') as arquivo:
-        informacoes = f'{pedido_id}{produto_id}{quantidade}'
+        informacoes = f'{pedido_id}{produto_id}{quantidade}{preco_unitario}'
         arquivo.write(f'{informacoes}\n')
 
 def cadastro_itens_txt():
@@ -29,14 +29,14 @@ def cadastro_itens_txt():
     Repassa para o arquivo de adicionar informações, o caminho e quais as variáveis que devem ser armazenadas
     na ordem correta. 
     """
-    verificar_arquivo("cadastro_itens.txt")
+    verificar_arquivo("cadastro_itens_pedido.txt")
     pedido_id = id_pedido()
     produto_id = id_produto()
     preco_unitario = importa_preco_unitario(produto_id)
     quantidade = quantidade_compra()
-
-    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_itens.txt", pedido_id, produto_id, quantidade)
-    print(f"ID Pedido: {pedido_id}{produto_id}{quantidade}")
+    
+    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_itens_pedido.txt", pedido_id, produto_id, quantidade,preco_unitario)
+    print(f"ID Pedido: {pedido_id} ID Produto: {produto_id} Quantidade: {quantidade} Preço Unitário: {preco_unitario}")
     
 def validar_numero_pedido(id_pedido):
     """
@@ -74,7 +74,7 @@ def validar_quantidade(quantidade_compra):
         pass
     
     print("Quantidade inválida. Insira somente números inteiros com até 10 caracteres.")
-    return None
+    return None 
 
 def importa_preco_unitario(produto_id):
     """
@@ -83,11 +83,11 @@ def importa_preco_unitario(produto_id):
     with open("arquivos_cadastro/cadastro_produto.txt", 'r') as arquivo:
         for linha in arquivo:
             if linha.startswith(produto_id):
-                preco_unitario = linha.strip()[70:].strip()  # Extrai os últimos 10 caracteres (preço unitário)
+                preco_unitario = linha.strip()[70:].strip() 
                 if preco_unitario:
                     return float(preco_unitario)
     return None
-
+    
 def id_pedido():
     """ 
     Verifica se o ID inserido pelo usuário está cadastrado no TXT
@@ -121,8 +121,18 @@ def quantidade_compra():
     """
     while True:
         quantidade_compra = input("Insira a quantidade de produtos que deseja comprar: (Máx 10 caracteres): ")
+        quantidade_compra = quantidade_compra.zfill(10)
         if validar_quantidade(quantidade_compra):
             print("Quantidade registrada!")
             return quantidade_compra
 
-cadastro_itens_txt()
+def calculo_total(quantidade, preco_unitario):
+    
+    quantidade = int(quantidade)
+    preco_unitario = float(preco_unitario)
+    total_pedido = preco_unitario * quantidade
+    
+    return total_pedido
+
+cadastro_itens_txt
+

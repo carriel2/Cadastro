@@ -16,19 +16,18 @@ def verificar_arquivo(nome_arquivo):
         with open(caminho_arquivo, 'w') as arquivo:
             arquivo.write("CADASTRO PEDIDO\n")
             
-def adicionar_informacoes_arquivo(nome_arquivo, id_pedido,cliente_id,pedido_data ):
+def adicionar_informacoes_arquivo(nome_arquivo, id_pedido,cliente_id,pedido_data,status):
     """
     Adiciona as informações no arquivo TXT. 
     STATUS - POSIÇÃO 41 - 50
     """
     
-    status = 'SEPARACAO' 
     with open(nome_arquivo, 'a') as arquivo:    
         pedido_data_sem_barras = pedido_data.replace('/', '')
         informacoes =  f"{id_pedido}{cliente_id}{pedido_data_sem_barras}{status}"
         arquivo.write(f'{informacoes}\n')
         
-def cadastrar_pedido_txt():
+def cadastro_pedido_txt():
     """
     Mostra no terminal que as informações foram cadastradas.
     Repassa para o arquivo de adicionar informações, o caminho e quais as variaveis que devem ser armazenadas
@@ -39,9 +38,11 @@ def cadastrar_pedido_txt():
     id_pedido = gerar_id_pedido()
     cliente_id = id_cliente()
     pedido_data = data_pedido()
+    status = 'SEPARAÇÃO'
     
-    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_pedido.txt", id_pedido,cliente_id,pedido_data)
-    print(f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data}")
+    
+    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_pedido.txt", id_pedido,cliente_id,pedido_data,status)
+    print(f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data} Status: {status}")
         
 def validar_cliente_id(id_cliente):
     """
@@ -114,7 +115,5 @@ def data_pedido():
         else:
             print("Data inválida, certifique-se dela atender a todas as condições!")
             
-# FUNCAO DE TOTAL DO PEDIDO DEVE SER FEITA DEPOIS DA FUNCAO DE QUANTIDADE DE ITENS NO PEDIDO!            
-# NAO ESQUECER POSIÇÃO 31-40
-     
-cadastrar_pedido_txt()
+            
+cadastro_pedido_txt
