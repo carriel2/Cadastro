@@ -346,14 +346,23 @@ def formatar_pedido(pedido):
     """
     Formata os pedidos para exibição.
     """
+    
+
+        
+    
     id_pedido = pedido['id_pedido']
     id_cliente = pedido['id_cliente']
     data_pedido = pedido['data_pedido']
     data_formatada = f"{data_pedido[0:2]}/{data_pedido[2:4]}/{data_pedido[4:]}"
     pedido_status = pedido['pedido_status']
-
+    
+    with open("arquivos_cadastro/cadastro_itens_pedido.txt", 'r') as arquivo:
+        next(arquivo)
+    for linha in arquivo:
+        if linha[:10] == id_pedido:
+            menu_total_pedidos()
     if id_pedido:
-        return f"ID Pedido: {id_pedido}, ID Cliente: {id_cliente}, Data do Pedido: {data_formatada}, Status do Pedido: {pedido_status}, Valor "
+        return f"ID Pedido: {id_pedido}, ID Cliente: {id_cliente}, Data do Pedido: {data_formatada}, Status do Pedido: {pedido_status}, Valor{} "
     else:
         return None
             

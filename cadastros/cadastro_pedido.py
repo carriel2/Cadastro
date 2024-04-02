@@ -16,17 +16,18 @@ def verificar_arquivo(nome_arquivo):
         with open(caminho_arquivo, 'w') as arquivo:
             arquivo.write("CADASTRO PEDIDO\n")
             
-def adicionar_informacoes_arquivo(nome_arquivo, id_pedido,cliente_id,pedido_data,status):
+def adicionar_informacoes_arquivo(nome_arquivo, pedido_id, produto_id, quantidade, preco_unitario):
     """
     Adiciona as informações no arquivo TXT. 
-    STATUS - POSIÇÃO 41 - 50
     """
+    if validar_numero_pedido(pedido_id):
+        print("Erro: Este pedido já possui itens cadastrados.")
+        return
     
-    with open(nome_arquivo, 'a') as arquivo:    
-        pedido_data_sem_barras = pedido_data.replace('/', '')
-        informacoes =  f"{id_pedido}{cliente_id}{pedido_data_sem_barras}{status}"
+    with open(nome_arquivo, 'a') as arquivo:
+        informacoes = f'{pedido_id}{produto_id}{quantidade}{preco_unitario}'
         arquivo.write(f'{informacoes}\n')
-        
+    
 def cadastro_pedido_txt():
     """
     Mostra no terminal que as informações foram cadastradas.
