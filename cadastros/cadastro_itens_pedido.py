@@ -1,6 +1,4 @@
 import os.path
-import re
-import random
 
 def verificar_arquivo(nome_arquivo):
     """

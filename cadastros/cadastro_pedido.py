@@ -16,18 +16,18 @@ def verificar_arquivo(nome_arquivo):
         with open(caminho_arquivo, 'w') as arquivo:
             arquivo.write("CADASTRO PEDIDO\n")
             
-def adicionar_informacoes_arquivo(nome_arquivo, pedido_id, produto_id, quantidade, preco_unitario):
+def adicionar_informacoes_arquivo(nome_arquivo, id_pedido,cliente_id,pedido_data,status ):
     """
     Adiciona as informações no arquivo TXT. 
+    STATUS - POSIÇÃO 41 - 50
     """
-    if validar_numero_pedido(pedido_id):
-        print("Erro: Este pedido já possui itens cadastrados.")
-        return
     
-    with open(nome_arquivo, 'a') as arquivo:
-        informacoes = f'{pedido_id}{produto_id}{quantidade}{preco_unitario}'
+    status = 'SEPARACAO' 
+    with open(nome_arquivo, 'a') as arquivo:    
+        pedido_data_sem_barras = pedido_data.replace('/', '')
+        informacoes =  f"{id_pedido}{cliente_id}{pedido_data_sem_barras}{status}"
         arquivo.write(f'{informacoes}\n')
-    
+        
 def cadastro_pedido_txt():
     """
     Mostra no terminal que as informações foram cadastradas.
@@ -39,11 +39,11 @@ def cadastro_pedido_txt():
     id_pedido = gerar_id_pedido()
     cliente_id = id_cliente()
     pedido_data = data_pedido()
-    status = 'SEPARAÇÃO'
+    status = 'SEPARACAO'
+    teste = calculo_total(id_pedido, "cadastro_itens_pedido.txt")
     
-    
-    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_pedido.txt", id_pedido,cliente_id,pedido_data,status)
-    print(f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data} Status: {status}")
+    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_pedido.txt", id_pedido,cliente_id,pedido_data, status)
+    print(f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data} Status: {status} {teste}  ")
         
 def validar_cliente_id(id_cliente):
     """
@@ -116,5 +116,27 @@ def data_pedido():
         else:
             print("Data inválida, certifique-se dela atender a todas as condições!")
             
+def calculo_total(id_pedido,nome_arquivo):
+    
+    diretorio = "arquivos_cadastro"
+    if not os.path.exists(diretorio):
+        os.makedirs(diretorio)
+        
+    caminho_arquivo = os.path.join(diretorio, nome_arquivo)
+    if not os.path.isfile(caminho_arquivo):
+        with open(caminho_arquivo, 'w') as arquivo:
+    
+            
+            with open('cadastro_itens_pedido.txt', 'r') as arquivo:
+                for linha in arquivo:
+                    teste = linha[:10]
+                    teste == id_pedido
+                
+                if teste ==  id_pedido:
+                    quantidade = int(linha[20:30])
+                    preco_unitario = float(linha[30:35])
+                    
+                    total = quantidade * preco_unitario
+                    return total
             
 cadastro_pedido_txt

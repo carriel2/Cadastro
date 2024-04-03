@@ -42,7 +42,6 @@ def direcionar_menu(escolha):
         '5': menu_consultar_clientes,
         '6': menu_consultar_produtos,
         '7': menu_consultar_pedidos,
-        '8': menu_total_pedidos
     }
     
     funcao_menu = opcoes_menu.get(escolha)
@@ -62,7 +61,7 @@ def menu_cadastro_cliente():
     print('Você está no menu de cadastro de clientes')
     print('-' * 30)
     
-    cadastro_cliente_txt()
+    cadastro_cliente_txt() 
     
     escolha = input("Digite o número da escolha desejada: \n (1- CADASTRO CLIENTE / 2- RETORNAR PARA ESCOLHAS / 3- SAIR) ")
     
@@ -209,37 +208,18 @@ def menu_consultar_pedidos():
     print('Você está no menu de consulta de pedidos')
     print('-' * 30)
     
-    consultar_pedidos()
+    escolha = input("Escolha uma das opções: \n (1- VER TODOS OS PEDIDOS / 2- VER PEDIDO PELO ID / 3- RETORNAR PARA ESCOLHAS / 4- SAIR) ")
     
-    escolha = input("Digite o número da escolha desejada: \n (1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA ESCOLHAS / 3- SAIR) ")
-    
-    while escolha != '3':
+    while escolha != '4':
         if escolha == '1':
-            menu_consultar_pedidos
+            consultar_pedidos_geral()
         elif escolha == '2':
+            consultar_pedido_por_id()
+        elif escolha == '3':
             cabecalho()
         else:
             print("Insira uma escolha válida")
-        escolha = input("Digite o número da escolha desejada: \n (1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA ESCOLHAS / 3- SAIR ")
-    exit()
-
-def menu_total_pedidos():
-    """
-    Calcula o total dos pedidos.
-    """
-    try:
-        with open("arquivos_cadastro/cadastro_itens_pedido.txt", 'r') as arquivo:
-            next(arquivo)
-            for linha in arquivo:   
-                preco = linha[30:].strip()
-                quantidade = linha[20:30].strip()
-                id_pedido = linha[0:10].strip()
-                total = int(quantidade) * float(preco)
-                
-                print(f"ID do pedido: {id_pedido} -- Total do Pedido: {total}")
-    except FileNotFoundError:
-        print("Nenhum produto cadastrado.")
-        
+        escolha = input("Escolha uma das opções: \n (1- VER TODOS OS PEDIDOS / 2- VER PEDIDO PELO ID / 3- RETORNAR PARA ESCOLHAS / 4- SAIR) ")
     exit()
     
 def consultar_clientes_txt():
@@ -346,29 +326,17 @@ def formatar_pedido(pedido):
     """
     Formata os pedidos para exibição.
     """
-    
-
-        
-    
     id_pedido = pedido['id_pedido']
     id_cliente = pedido['id_cliente']
     data_pedido = pedido['data_pedido']
     data_formatada = f"{data_pedido[0:2]}/{data_pedido[2:4]}/{data_pedido[4:]}"
     pedido_status = pedido['pedido_status']
     
-    with open("arquivos_cadastro/cadastro_itens_pedido.txt", 'r') as arquivo:
-        next(arquivo)
-    for linha in arquivo:
-        if linha[:10] == id_pedido:
-            menu_total_pedidos()
-    if id_pedido:
-        return f"ID Pedido: {id_pedido}, ID Cliente: {id_cliente}, Data do Pedido: {data_formatada}, Status do Pedido: {pedido_status}, Valor{} "
-    else:
-        return None
-            
-def consultar_pedidos():
+    return f"ID Pedido: {id_pedido}, ID Cliente: {id_cliente}, Data do Pedido: {data_formatada}, Status do Pedido: {pedido_status}, Valor Total: "
+
+def consultar_pedidos_geral():
     """
-    Consulta e exibe os pedidos cadastrados.
+    Consulta e exibe todos os pedidos cadastrados.
     """
     pedidos = consultar_pedidos_txt()
     if pedidos:
@@ -379,5 +347,45 @@ def consultar_pedidos():
                 print(pedido_formatado)
     else:
         exit()
-        
+
+def consultar_pedido_por_id():
+    """
+    Consulta e exibe os pedidos com base no ID.
+    """
+
+    buscar = input("Insira o ID do pedido que deseja visualizar: ")
+    encontrado = False
+
+    with open("arquivos_cadastro/cadastro_pedido.txt", 'r') as arquivo:
+        for linha in arquivo:
+            id_pedido = linha[:10].strip()
+            if id_pedido == buscar: 
+                encontrado = True
+                print("Pedido encontrado!")
+                break
+    if not encontrado:
+        print("Pedido não encontrado.")
+                
+    with open("arquivos_cadastro/cadastro_itens_pedido.txt", 'r') as arquivo:
+        next(arquivo) 
+        for linha in arquivo:
+            id_pedido_linha = linha[:10].strip()
+            if buscar == id_pedido_linha:
+                preco = linha[30:].strip()
+                quantidade = linha[20:30].strip()
+                total = int(quantidade) * float(preco)
+                print(f"ID Pedido: {buscar} - Total Pedido: {total}")
+              
+                escolha = input("O que deseja fazer? \n (1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA O MENU INICIAL / 3 - SAIR")
+                
+                while escolha != '3':
+                    if escolha == '1':
+                        menu_consultar_pedidos()
+                    elif escolha == '2':
+                        cabecalho()
+                    else:
+                        print("Insira uma escolha válida")
+                    escolha = input("Escolha uma das opções: \n (1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA O MENU INICIAL / 3 - SAIR" )
+                exit()
+     
 cabecalho()
