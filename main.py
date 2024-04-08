@@ -3,6 +3,7 @@ from cadastros.cadastro_produto import cadastro_produto_txt
 from cadastros.cadastro_pedido import cadastro_pedido_txt
 from cadastros.cadastro_itens_pedido import cadastro_itens_txt
 from cadastros.cadastro_itens_pedido import verificar_arquivo
+
 def cabecalho():
     """
     INTERFACE USUÁRIO E ESCOLHAS
@@ -246,10 +247,12 @@ def consultar_clientes_txt():
                 nome = linha[10:40].strip()
                 cpf = linha[40:61].strip()
                 clientes.append({'id': id_cliente, 'nome': nome, 'cpf': cpf})
+                return clientes
+            
             if not clientes:
                 print("Nenhum Cliente Cadastrado.")
                 
-                escolha = input("Deseja cadastrar um cliente (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                escolha = input("Deseja cadastrar um novo cliente  (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
                 while escolha != '3':
                     if escolha == '1':
                         cadastro_cliente_txt()
@@ -257,11 +260,22 @@ def consultar_clientes_txt():
                         cabecalho()
                     else:
                         print("Insira uma escolha válida")
-                        escolha = input("Deseja cadastrar um cliente (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                        escolha = input("Deseja cadastrar um novo cliente? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
                 exit()
     except FileNotFoundError:
-        print("Nenhum cliente cadastrado.")
-        return []
+        print("Arquivo não encontrado, realizando criação...")
+        verificar_arquivo(nome_arquivo="cadastro_cliente.txt")
+        escolha = input("Arquivo Criado! Já que está vazio, deseja cadastrar um novo cliente? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+        while escolha != '3':
+            if escolha == '1':
+                cadastro_produto_txt()
+            elif escolha == '2':
+                cabecalho()
+            else:
+                print("Insira uma escolha válida")
+            escolha = input("Deseja cadastrar um cliente? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+        exit()
+    return[]
 
 def formatar_cliente(cliente):
     """
@@ -296,10 +310,12 @@ def consultar_produtos_txt():
                 quantidade_estoque = linha[60:70].strip().replace('_', '')
                 preco_unitario = linha[70:].strip()
                 produtos.append({'id': id_produto, 'nome': nome_produto, 'quantidade': quantidade_estoque, 'preco': preco_unitario})
+                return produtos
+            
             if not produtos:
                 print("Nenhum produto cadastrado.")
                 
-                escolha = input("Deseja cadastrar um produto (1- Sim / 2- Voltar ao Menu / 3- Sair) ")
+                escolha = input("Deseja cadastrar um novo produto? (1- Sim / 2- Voltar ao Menu / 3- Sair) ")
                 while escolha != '3':
                     if escolha == '1':
                         cadastro_produto_txt()
@@ -307,7 +323,7 @@ def consultar_produtos_txt():
                         cabecalho()
                     else:
                         print("Insira uma escolha válida")
-                    escolha = input("Deseja cadastrar um produto (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                    escolha = input("Deseja cadastrar um novo produto? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
                 exit()
 
     except FileNotFoundError:
@@ -321,10 +337,9 @@ def consultar_produtos_txt():
                 cabecalho()
             else:
                 print("Insira uma escolha válida")
-            escolha = input("Deseja cadastrar um produto (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+            escolha = input("Deseja cadastrar um novo produto? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
         exit()
         
-
 def formatar_produto(produto):
     """
     Formata os produtos para exibição.
@@ -359,10 +374,12 @@ def consultar_pedidos_txt():
                 data_pedido = linha[20:28].strip()
                 pedido_status = linha[28:].strip() 
                 pedidos.append({'id_pedido': id_pedido, 'id_cliente': id_cliente, 'data_pedido': data_pedido, 'pedido_status': pedido_status})
+                return pedidos
+            
             if not pedidos:
                     print("Nenhum pedido cadastrado.")
  
-                    escolha = input("Deseja cadastrar um pedido (1- Sim / 2- Voltar ao Menu / 3- Sair) ")
+                    escolha = input("Deseja cadastrar um novo pedido? (1- Sim / 2- Voltar ao Menu / 3- Sair) ")
                     while escolha != '3':
                         if escolha == '1':
                             cadastro_produto_txt()
@@ -370,7 +387,7 @@ def consultar_pedidos_txt():
                             cabecalho()
                         else:
                             print("Insira uma escolha válida")
-                        escolha = input("Deseja cadastrar um pedido (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                        escolha = input("Deseja cadastrar um novo pedido? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
                     exit()
     except FileNotFoundError:
         print("Arquivo não encontrado. Criando novo arquivo...")
@@ -383,7 +400,7 @@ def consultar_pedidos_txt():
                 cabecalho()
             else:
                 print("Insira uma escolha válida")
-            escolha = input("Deseja cadastrar um pedido (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+            escolha = input("Deseja cadastrar um novo pedido? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
         exit()
  
 def formatar_pedido(pedido):
@@ -468,7 +485,7 @@ def consultar_pedido_por_id():
                 cabecalho()
             else:
                 print("Insira uma escolha válida")
-            escolha = input("Deseja cadastrar um pedido (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+            escolha = input("Deseja cadastrar um novo pedido? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
         exit()
 
     escolha = input("O que deseja fazer?\n(1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA O MENU INICIAL / 3 - SAIR) ")
