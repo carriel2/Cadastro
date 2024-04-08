@@ -359,7 +359,7 @@ def calcular_total_pedido(id_pedido):
             id_pedido_linha = linha[:10].strip()
             if id_pedido == id_pedido_linha:
                 preco_str = linha[30:].strip()
-                if preco_str: 
+                if preco_str:
                     preco = float(preco_str)
                     quantidade = int(linha[20:30].strip())
                     total += preco * quantidade
