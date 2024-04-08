@@ -2,7 +2,7 @@ from cadastros.cadastro_cliente import cadastro_cliente_txt
 from cadastros.cadastro_produto import cadastro_produto_txt
 from cadastros.cadastro_pedido import cadastro_pedido_txt
 from cadastros.cadastro_itens_pedido import cadastro_itens_txt
-
+from cadastros.cadastro_itens_pedido import verificar_arquivo
 def cabecalho():
     """
     INTERFACE USUÁRIO E ESCOLHAS
@@ -30,10 +30,6 @@ def cabecalho():
     direcionar_menu(escolha)
 
 def direcionar_menu(escolha):
-    """
-    Função para redirecionar o usuário de acordo com a escolha dele
-    para determinado menu.
-    """
     opcoes_menu = {
         '1': menu_cadastro_cliente,
         '2': menu_cadastro_produto,
@@ -49,7 +45,8 @@ def direcionar_menu(escolha):
     if funcao_menu:
         funcao_menu()
     else:
-        print("Escolha inválida.")
+        print("Opção inválida. Por favor, escolha uma opção válida.")
+        cabecalho()
 
 def menu_cadastro_cliente():
     """
@@ -127,7 +124,7 @@ def menu_cadastro_pedido():
     
     cadastro_pedido_txt()
     
-    escolha = input("Digite o número da escolha desejada: \n (1- CADASTRAR OUTRO PEDIDO / 2- RETORNAR PARA ESCOLHAS / 3- SAIR)")
+    escolha = input("Digite o número da escolha desejada: \n (1- CADASTRAR OUTRO PEDIDO / 2- RETORNAR PARA ESCOLHAS / 3- SAIR) ")
     
     while escolha != '3':
         if escolha == '1':
@@ -250,8 +247,18 @@ def consultar_clientes_txt():
                 cpf = linha[40:61].strip()
                 clientes.append({'id': id_cliente, 'nome': nome, 'cpf': cpf})
             if not clientes:
-                print("Nenhum cliente cadastrado.")
-            return clientes
+                print("Nenhum Cliente Cadastrado.")
+                
+                escolha = input("Deseja cadastrar um cliente (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                while escolha != '3':
+                    if escolha == '1':
+                        cadastro_cliente_txt()
+                    elif escolha == '2':
+                        cabecalho()
+                    else:
+                        print("Insira uma escolha válida")
+                        escolha = input("Deseja cadastrar um cliente (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                exit()
     except FileNotFoundError:
         print("Nenhum cliente cadastrado.")
         return []
@@ -277,6 +284,7 @@ def consultar_clientes():
 def consultar_produtos_txt():
     """
     Consulta os produtos cadastrados no arquivo TXT.
+    
     """
     try:
         with open("arquivos_cadastro/cadastro_produto.txt", 'r') as arquivo:
@@ -290,10 +298,32 @@ def consultar_produtos_txt():
                 produtos.append({'id': id_produto, 'nome': nome_produto, 'quantidade': quantidade_estoque, 'preco': preco_unitario})
             if not produtos:
                 print("Nenhum produto cadastrado.")
-            return produtos
+                
+                escolha = input("Deseja cadastrar um produto (1- Sim / 2- Voltar ao Menu / 3- Sair) ")
+                while escolha != '3':
+                    if escolha == '1':
+                        cadastro_produto_txt()
+                    elif escolha == '2':
+                        cabecalho()
+                    else:
+                        print("Insira uma escolha válida")
+                    escolha = input("Deseja cadastrar um produto (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                exit()
+
     except FileNotFoundError:
-        print("Nenhum produto cadastrado.")
-        return []
+        print("Arquivo não encontrado, realizando criação.")
+        verificar_arquivo(nome_arquivo="cadastro_produto.txt")
+        escolha = input("Arquivo Criado! Já que está vazio, deseja cadastrar um novo produto? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+        while escolha != '3':
+            if escolha == '1':
+                cadastro_produto_txt()
+            elif escolha == '2':
+                cabecalho()
+            else:
+                print("Insira uma escolha válida")
+            escolha = input("Deseja cadastrar um produto (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+        exit()
+        
 
 def formatar_produto(produto):
     """
@@ -331,10 +361,30 @@ def consultar_pedidos_txt():
                 pedidos.append({'id_pedido': id_pedido, 'id_cliente': id_cliente, 'data_pedido': data_pedido, 'pedido_status': pedido_status})
             if not pedidos:
                     print("Nenhum pedido cadastrado.")
-            return pedidos
+ 
+                    escolha = input("Deseja cadastrar um pedido (1- Sim / 2- Voltar ao Menu / 3- Sair) ")
+                    while escolha != '3':
+                        if escolha == '1':
+                            cadastro_produto_txt()
+                        elif escolha == '2':
+                            cabecalho()
+                        else:
+                            print("Insira uma escolha válida")
+                        escolha = input("Deseja cadastrar um pedido (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                    exit()
     except FileNotFoundError:
-        print("Nenhum pedido cadastrado.")
-    return []
+        print("Arquivo não encontrado. Criando novo arquivo...")
+        verificar_arquivo(nome_arquivo="cadastro_pedido.txt")
+        escolha = input("Arquivo Criado! Já que está vazio, deseja cadastrar um novo pedido? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+        while escolha != '3':
+            if escolha == '1':
+                cadastro_pedido_txt()
+            elif escolha == '2':
+                cabecalho()
+            else:
+                print("Insira uma escolha válida")
+            escolha = input("Deseja cadastrar um pedido (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+        exit()
  
 def formatar_pedido(pedido):
     """
@@ -389,30 +439,40 @@ def consultar_pedido_por_id():
     """
     Consulta e exibe os pedidos com base no ID.
     """
-
     buscar = input("Insira o ID do pedido que deseja visualizar: ")
-    encontrado = False
 
-    with open("arquivos_cadastro/cadastro_pedido.txt", 'r') as arquivo:
-        for linha in arquivo:
-            id_pedido = linha[:10].strip()
-            id_cliente = linha[10:20].strip()
-            data_pedido = linha[20:28].strip()
-            pedido_status = linha[28:].strip()
-            if id_pedido == buscar: 
-                encontrado = True
-                print("Pedido encontrado!")
-                break
-    if not encontrado:
-        print("Pedido não encontrado.")
-                
-    total_pedido = calcular_total_pedido(id_pedido)
-                                                
-    data_formatada = f"{data_pedido[0:2]}/{data_pedido[2:4]}/{data_pedido[4:]}" 
+    try:
+        with open("arquivos_cadastro/cadastro_pedido.txt", 'r') as arquivo:
+            for linha in arquivo:
+                id_pedido = linha[:10].strip()
+                id_cliente = linha[10:20].strip()
+                data_pedido = linha[20:28].strip()
+                pedido_status = linha[28:].strip()
+                if id_pedido == buscar:
+                    total_pedido = calcular_total_pedido(id_pedido)
+                    data_formatada = f"{data_pedido[0:2]}/{data_pedido[2:4]}/{data_pedido[4:]}"
+                    print(f"ID Pedido: {id_pedido}, ID Cliente: {id_cliente}, Data do Pedido: {data_formatada}, Status do Pedido: {pedido_status}, Valor Total: R${total_pedido}")
+                    break
+            else:
+                print("Pedido não encontrado.")
+                return
+            
+    except FileNotFoundError:
+        print("Arquivo não encontrado. Criando novo arquivo...")
+        verificar_arquivo(nome_arquivo="arquivos_cadastro/cadastro_pedido.txt")
+        escolha = input("Arquivo Criado! Já que está vazio, deseja cadastrar um novo pedido? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+        while escolha != '3':
+            if escolha == '1':
+                cadastro_pedido_txt()
+            elif escolha == '2':
+                cabecalho()
+            else:
+                print("Insira uma escolha válida")
+            escolha = input("Deseja cadastrar um pedido (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+        exit()
 
-    print(f"ID Pedido: {id_pedido}, ID Cliente: {id_cliente}, Data do Pedido: {data_formatada}, Status do Pedido: {pedido_status}, Valor Total: R${total_pedido}")
-    escolha = input("O que deseja fazer? \n (1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA O MENU INICIAL / 3 - SAIR ")
-    
+    escolha = input("O que deseja fazer?\n(1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA O MENU INICIAL / 3 - SAIR) ")
+
     while escolha != '3':
         if escolha == '1':
             menu_consultar_pedidos()
@@ -420,7 +480,7 @@ def consultar_pedido_por_id():
             cabecalho()
         else:
             print("Insira uma escolha válida")
-        escolha = input("Escolha uma das opções: \n (1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA O MENU INICIAL / 3 - SAIR ")
+        escolha = input("Escolha uma das opções:\n(1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA O MENU INICIAL / 3 - SAIR) ")
     exit()
-     
+ 
 cabecalho()
