@@ -23,9 +23,7 @@ def adicionar_informacoes_arquivo(nome_arquivo, pedido_id, produto_id, quantidad
 
 def cadastro_itens_txt():
     """
-    Mostra no terminal que as informações foram cadastradas.
-    Repassa para o arquivo de adicionar informações, o caminho e quais as variáveis que devem ser armazenadas
-    na ordem correta. 
+    Realiza o cadastro dos itens do pedido.
     """
     verificar_arquivo("cadastro_itens_pedido.txt")
     pedido_id = id_pedido()
@@ -33,16 +31,29 @@ def cadastro_itens_txt():
     preco_unitario = importa_preco_unitario(produto_id)
     quantidade = quantidade_compra()
     
-    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_itens_pedido.txt", pedido_id, produto_id, quantidade,preco_unitario)
+    quantidade_em_estoque = obter_quantidade_em_estoque(produto_id)
+
+    if int(quantidade_em_estoque) == 0:
+        print("Produto fora de estoque.")
+        return
+
+    if int(quantidade) > int(quantidade_em_estoque):
+        print("Erro: Quantidade solicitada excede a quantidade disponível em estoque.")
+        return
+
+    nova_quantidade_em_estoque = int(quantidade_em_estoque) - int(quantidade)
+    atualizar_quantidade_em_estoque(produto_id, nova_quantidade_em_estoque)
+
+    adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_itens_pedido.txt", pedido_id, produto_id, quantidade, preco_unitario)
     print(f"ID Pedido: {pedido_id} ID Produto: {produto_id} Quantidade: {quantidade} Preço Unitário: {preco_unitario}")
-    
+
 def validar_numero_pedido(id_pedido):
     """
     Confere se o ID do pedido já está registrado.
     """
     with open('arquivos_cadastro/cadastro_pedido.txt', 'r') as arquivo:
         for linha in arquivo:
-            pedido_id = linha[:10].strip()
+            pedido_id = linha[:10].strip()  
             if pedido_id == id_pedido:
                 return True
     return False
@@ -56,12 +67,38 @@ def validar_id_produto(id_produto):
             produto_id = linha[:10].strip()
             if produto_id == id_produto:
                 return True
-    return False
+    return False    
+
+def atualizar_quantidade_em_estoque(produto_id, nova_quantidade):
+    """
+    Atualiza a quantidade em estoque do produto no arquivo de cadastro de produtos.
+    """
+    with open("arquivos_cadastro/cadastro_produto.txt", 'r') as arquivo:
+        linhas = arquivo.readlines()
+
+    for i, linha in enumerate(linhas):
+        if linha.startswith(produto_id):
+            linhas[i] = linha[:60] + str(nova_quantidade).zfill(10) + linha[70:]
+            
+    with open("arquivos_cadastro/cadastro_produto.txt", 'w') as arquivo:
+        arquivo.writelines(linhas)
+
+def obter_quantidade_em_estoque(id_produto):
+    """
+    Obtém a quantidade disponível em estoque do produto com o ID fornecido.
+    """
+    with open("arquivos_cadastro/cadastro_produto.txt", 'r') as arquivo:
+        for linha in arquivo:
+            if linha.startswith(id_produto):
+                quantidade_estoque = int(linha[60:70].strip().replace("_", ""))
+                return quantidade_estoque
+    return None 
 
 def validar_quantidade(quantidade_compra):
     """
     Valida a quantidade de itens inseridos para compra.
     """
+         
     try:
         quantidade_compra = str(quantidade_compra) 
         if quantidade_compra.isdigit() and len(quantidade_compra) <= 10:
@@ -121,9 +158,8 @@ def quantidade_compra():
         quantidade_compra = input("Insira a quantidade de produtos que deseja comprar: (Máx 10 caracteres): ")
         quantidade_compra = quantidade_compra.zfill(10)
         if validar_quantidade(quantidade_compra):
-            print("Quantidade registrada!")
             return quantidade_compra
-
+        
 def calculo_total(quantidade, preco_unitario):
     
     quantidade = int(quantidade)
@@ -133,4 +169,3 @@ def calculo_total(quantidade, preco_unitario):
     return total_pedido
 
 cadastro_itens_txt
-

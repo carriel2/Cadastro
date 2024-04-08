@@ -40,10 +40,9 @@ def cadastro_pedido_txt():
     cliente_id = id_cliente()
     pedido_data = data_pedido()
     status = 'SEPARACAO'
-    teste = calculo_total(id_pedido, "cadastro_itens_pedido.txt")
     
     adicionar_informacoes_arquivo("arquivos_cadastro/cadastro_pedido.txt", id_pedido,cliente_id,pedido_data, status)
-    print(f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data} Status: {status} {teste}  ")
+    print(f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data} Status: {status}")
         
 def validar_cliente_id(id_cliente):
     """
@@ -123,8 +122,10 @@ def calculo_total(id_pedido,nome_arquivo):
         os.makedirs(diretorio)
         
     caminho_arquivo = os.path.join(diretorio, nome_arquivo)
+
     if not os.path.isfile(caminho_arquivo):
-        with open(caminho_arquivo, 'w') as arquivo:
+        with open(caminho_arquivo, 'w'):
+            pass  # Cria o arquivo vazio
     
             
             with open('cadastro_itens_pedido.txt', 'r') as arquivo:
