@@ -115,29 +115,4 @@ def data_pedido():
         else:
             print("Data inválida, certifique-se dela atender a todas as condições!")
             
-# def calculo_total(id_pedido,nome_arquivo):
-    
-#     diretorio = "arquivos_cadastro"
-#     if not os.path.exists(diretorio):
-#         os.makedirs(diretorio)
-        
-#     caminho_arquivo = os.path.join(diretorio, nome_arquivo)
-
-#     if not os.path.isfile(caminho_arquivo):
-#         with open(caminho_arquivo, 'w'):
-#             pass  # Cria o arquivo vazio
-    
-            
-#             with open('cadastro_itens_pedido.txt', 'r') as arquivo:
-#                 for linha in arquivo:
-#                     teste = linha[:10]
-#                     teste == id_pedido
-                
-#                 if teste ==  id_pedido:
-#                     quantidade = int(linha[20:30])
-#                     preco_unitario = float(linha[30:35])
-                    
-#                     total = quantidade * preco_unitario
-#                     return total
-            
 cadastro_pedido_txt

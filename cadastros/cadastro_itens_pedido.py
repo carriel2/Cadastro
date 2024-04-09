@@ -159,13 +159,5 @@ def quantidade_compra():
         quantidade_compra = quantidade_compra.zfill(10)
         if validar_quantidade(quantidade_compra):
             return quantidade_compra
-        
-# def calculo_total(quantidade, preco_unitario):
-    
-#     quantidade = int(quantidade)
-#     preco_unitario = float(preco_unitario)
-#     total_pedido = preco_unitario * quantidade
-    
-#     return total_pedido
-
+ 
 cadastro_itens_txt

@@ -185,6 +185,7 @@ def menu_consultar_clientes():
         else:
             print("Insira uma escolha válida")
         escolha = input("Digite o número da escolha desejada: \n (1- CONSULTAR OUTRO CLIENTE / 2- RETORNAR PARA ESCOLHAS / 3- SAIR) ")
+        
     exit()
     
 def menu_consultar_produtos():
@@ -209,6 +210,7 @@ def menu_consultar_produtos():
         else:
             print("Insira uma escolha válida")
         escolha = input("Digite o número da escolha desejada: \n (1- CONSULTAR OUTRO PRODUTO / 2- RETORNAR PARA ESCOLHAS / 3- SAIR) ")
+        
     exit()
     
 def menu_consultar_pedidos():    
@@ -232,6 +234,8 @@ def menu_consultar_pedidos():
         else:
             print("Insira uma escolha válida")
         escolha = input("Escolha uma das opções: \n (1- VER TODOS OS PEDIDOS / 2- VER PEDIDO PELO ID / 3- RETORNAR PARA ESCOLHAS / 4- SAIR) ")
+        
+        
     exit()
     
 def consultar_clientes_txt():
@@ -247,6 +251,7 @@ def consultar_clientes_txt():
                 nome = linha[10:40].strip()
                 cpf = linha[40:61].strip()
                 clientes.append({'id': id_cliente, 'nome': nome, 'cpf': cpf})
+                
                 return clientes
             
             if not clientes:
@@ -261,7 +266,9 @@ def consultar_clientes_txt():
                     else:
                         print("Insira uma escolha válida")
                         escolha = input("Deseja cadastrar um novo cliente? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                        
                 exit()
+                
     except FileNotFoundError:
         print("Arquivo não encontrado, realizando criação...")
         verificar_arquivo(nome_arquivo="cadastro_cliente.txt")
@@ -274,7 +281,9 @@ def consultar_clientes_txt():
             else:
                 print("Insira uma escolha válida")
             escolha = input("Deseja cadastrar um cliente? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+            
         exit()
+        
     return[]
 
 def formatar_cliente(cliente):
@@ -293,6 +302,7 @@ def consultar_clientes():
         for cliente in clientes:
             print(formatar_cliente(cliente))
     else:
+        
         exit()
 
 def consultar_produtos_txt():
@@ -310,6 +320,7 @@ def consultar_produtos_txt():
                 quantidade_estoque = linha[60:70].strip().replace('_', '')
                 preco_unitario = linha[70:].strip()
                 produtos.append({'id': id_produto, 'nome': nome_produto, 'quantidade': quantidade_estoque, 'preco': preco_unitario})
+                
                 return produtos
             
             if not produtos:
@@ -324,6 +335,7 @@ def consultar_produtos_txt():
                     else:
                         print("Insira uma escolha válida")
                     escolha = input("Deseja cadastrar um novo produto? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                    
                 exit()
 
     except FileNotFoundError:
@@ -338,6 +350,7 @@ def consultar_produtos_txt():
             else:
                 print("Insira uma escolha válida")
             escolha = input("Deseja cadastrar um novo produto? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+            
         exit()
         
 def formatar_produto(produto):
@@ -357,6 +370,7 @@ def consultar_produtos():
             if produto['id']:   
                 print(formatar_produto(produto))
     else:
+        
         exit()  
             
 def consultar_pedidos_txt():
@@ -388,7 +402,9 @@ def consultar_pedidos_txt():
                         else:
                             print("Insira uma escolha válida")
                         escolha = input("Deseja cadastrar um novo pedido? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+                        
                     exit()
+                    
     except FileNotFoundError:
         print("Arquivo não encontrado. Criando novo arquivo...")
         verificar_arquivo(nome_arquivo="cadastro_pedido.txt")
@@ -401,6 +417,7 @@ def consultar_pedidos_txt():
             else:
                 print("Insira uma escolha válida")
             escolha = input("Deseja cadastrar um novo pedido? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+            
         exit()
  
 def formatar_pedido(pedido):
@@ -420,6 +437,7 @@ def calcular_total_pedido(id_pedido):
     Calcula o valor total do pedido com base nos itens do pedido.
     """
     total = 0
+    
     with open("arquivos_cadastro/cadastro_itens_pedido.txt", 'r') as arquivo:
         next(arquivo) 
         for linha in arquivo:
@@ -430,6 +448,7 @@ def calcular_total_pedido(id_pedido):
                     preco = float(preco_str)
                     quantidade = int(linha[20:30].strip())
                     total += preco * quantidade
+                    
     return total
 
 def consultar_pedidos_geral():
@@ -450,6 +469,7 @@ def consultar_pedidos_geral():
             
             print(f"ID Pedido: {id_pedido}, ID Cliente: {id_cliente}, Data do Pedido: {data_formatada}, Status do Pedido: {pedido_status}, Valor Total: R${total_pedido}")
     else:
+        
         exit()
 
 def consultar_pedido_por_id():
@@ -486,6 +506,7 @@ def consultar_pedido_por_id():
             else:
                 print("Insira uma escolha válida")
             escolha = input("Deseja cadastrar um novo pedido? (1- Sim/ 2- Voltar ao Menu / 3- Sair) ")
+            
         exit()
 
     escolha = input("O que deseja fazer?\n(1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA O MENU INICIAL / 3 - SAIR) ")
@@ -498,6 +519,7 @@ def consultar_pedido_por_id():
         else:
             print("Insira uma escolha válida")
         escolha = input("Escolha uma das opções:\n(1- CONSULTAR OUTRO PEDIDO / 2- RETORNAR PARA O MENU INICIAL / 3 - SAIR) ")
+        
     exit()
  
 cabecalho()
