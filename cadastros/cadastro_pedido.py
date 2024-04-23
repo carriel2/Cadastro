@@ -1,7 +1,38 @@
 import os.path
 import re
-import random
 import datetime
+
+
+def proximo_sequencial(nome_arquivo):
+    """
+    Gera o próximo número sequencial e o retorna.
+    Se o arquivo não existir, cria o arquivo e escreve o primeiro sequencial.
+    """
+
+    if os.path.exists(nome_arquivo):
+        try:
+            with open(nome_arquivo, "r") as arquivo:
+                linhas = arquivo.readlines()
+                if len(linhas) <= 1:
+                    proximo = 1
+                else:
+                    ultimo_sequencial = int(linhas[-1][:10].strip())
+                    proximo = ultimo_sequencial + 1
+
+            return str(proximo).zfill(10)
+
+        except Exception as e:
+            print("Erro ao ler/escrever no arquivo:", e)
+            return None
+    else:
+        try:
+            with open(nome_arquivo, "w") as arquivo:
+                arquivo.write("CADASTRO PEDIDO\n0000000001\n")
+            return "0000000001"
+
+        except Exception as e:
+            print("Erro ao criar o arquivo:", e)
+            return None
 
 
 def verificar_arquivo(nome_arquivo):
@@ -29,33 +60,41 @@ def adicionar_informacoes_arquivo(
     status = "SEPARACAO"
     with open(nome_arquivo, "a") as arquivo:
         pedido_data_sem_barras = pedido_data.replace("/", "")
-        informacoes = f"{id_pedido}{cliente_id}{pedido_data_sem_barras}{status}"
+        id_pedido_formatado = id_pedido.zfill(10)
+        cliente_id_formatado = cliente_id.zfill(10)
+        pedido_data_formatada = pedido_data_sem_barras
+        informacoes = f"{id_pedido_formatado}{cliente_id_formatado}{pedido_data_formatada}{status}"
         arquivo.write(f"{informacoes}\n")
 
 
 def cadastro_pedido_txt():
     """
     Mostra no terminal que as informações foram cadastradas.
-    Repassa para o arquivo de adicionar informações, o caminho e quais as variaveis que devem ser armazenadas
+    Repassa para o arquivo de adicionar informações, o caminho e quais as variáveis que devem ser armazenadas
     na ordem correta.
     """
     verificar_arquivo("cadastro_pedido.txt")
 
-    id_pedido = gerar_id_pedido()
     cliente_id = id_cliente()
     pedido_data = data_pedido()
     status = "SEPARACAO"
 
-    adicionar_informacoes_arquivo(
-        "arquivos_cadastro/cadastro_pedido.txt",
-        id_pedido,
-        cliente_id,
-        pedido_data,
-        status,
-    )
-    print(
-        f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data} Status: {status}"
-    )
+    id_pedido = proximo_sequencial("arquivos_cadastro/cadastro_pedido.txt")
+    if id_pedido is not None:
+        adicionar_informacoes_arquivo(
+            "arquivos_cadastro/cadastro_pedido.txt",
+            id_pedido,
+            cliente_id,
+            pedido_data,
+            status,
+        )
+        print(
+            f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data} Status: {status}"
+        )
+    else:
+        print(
+            "Falha ao gerar o ID do pedido. Por favor, verifique o arquivo e tente novamente."
+        )
 
 
 def validar_cliente_id(id_cliente):
@@ -101,21 +140,11 @@ def validar_data_pedido(data_pedido):
         return False
 
 
-def gerar_id_pedido():
-    """
-    Gera um código de pedido aleatório. POSIÇÃO 1 - 10
-    """
-    numero_aleatorio = random.randint(0, 10**5 - 1)
-    id_aleatorio = "15221" + str(numero_aleatorio).zfill(5)
-
-    return id_aleatorio
-
-
 def id_cliente():
     """
     Realiza a confirmação se o id do cliente já está cadastrado ou não no TXT. POSIÇÃO 11 - 20
     """
-    id_cliente = input("Insira o ID do cliente registrado (10 caracteres): ")
+    id_cliente = input("Insira o ID do cliente registrado (10 caracteres): ").zfill(10)
 
     if validar_cliente_id(id_cliente):
         print("Cliente confirmado!")

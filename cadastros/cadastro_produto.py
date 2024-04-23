@@ -1,6 +1,37 @@
 import os.path
 import re
-import random
+
+
+def proximo_sequencial(nome_arquivo):
+    """
+    Gera o próximo número sequencial e o retorna.
+    Se o arquivo não existir, cria o arquivo e escreve o primeiro sequencial.
+    """
+
+    if os.path.exists(nome_arquivo):
+        try:
+            with open(nome_arquivo, "r") as arquivo:
+                linhas = arquivo.readlines()
+                if len(linhas) <= 1:
+                    proximo = 1
+                else:
+                    ultimo_sequencial = int(linhas[-1][:10].strip())
+                    proximo = ultimo_sequencial + 1
+
+            return str(proximo).zfill(10)
+
+        except Exception as e:
+            print("Erro ao ler/escrever no arquivo:", e)
+            return None
+    else:
+        try:
+            with open(nome_arquivo, "w") as arquivo:
+                arquivo.write("CADASTRO PRODUTO\n0000000001\n")
+            return "0000000001"
+
+        except Exception as e:
+            print("Erro ao criar o arquivo:", e)
+            return None
 
 
 def verificar_arquivo(nome_arquivo):
@@ -28,7 +59,7 @@ def adicionar_informacoes_arquivo(
     Adiciona as informações no arquivo TXT.
     """
     with open(nome_arquivo, "a") as arquivo:
-        informacoes = f'{id_armazenado}{descricao_armazenada.ljust(50, "_")}{estoque_armazenado.ljust(10, "_")}{preco_armazenado}'
+        informacoes = f"{id_armazenado}{descricao_armazenada.ljust(50)}{estoque_armazenado.ljust(10)}{preco_armazenado}"
         arquivo.write(f"{informacoes}\n")
 
 
@@ -40,7 +71,7 @@ def cadastro_produto_txt():
     """
     verificar_arquivo("cadastro_produto.txt")
 
-    id_armazenado = gerar_id()
+    id_armazenado = proximo_sequencial("arquivos_cadastro/cadastro_produto.txt")
     descricao_armazenada = desc_produto()
     estoque_armazenado = qtd_estoque()
     preco_armazenado = preco_unitario()
@@ -92,15 +123,6 @@ def validar_preco(preco):
     except ValueError:
         print("Preço inválido.")
         return None
-
-
-def gerar_id():
-    """
-    Gera um código de produto aleatório. POSIÇÃO 1-10
-    """
-    numero_aleatorio = random.randint(0, 10**5 - 1)
-    id_aleatorio = "11221" + str(numero_aleatorio).zfill(5)
-    return id_aleatorio
 
 
 def desc_produto():

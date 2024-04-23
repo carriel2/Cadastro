@@ -94,7 +94,7 @@ def atualizar_quantidade_em_estoque(produto_id, nova_quantidade):
 
     for i, linha in enumerate(linhas):
         if linha.startswith(produto_id):
-            linhas[i] = linha[:60] + str(nova_quantidade).zfill(10) + linha[70:]
+            linhas[i] = linha[:60] + str(nova_quantidade).ljust(10) + linha[70:]
 
     with open("arquivos_cadastro/cadastro_produto.txt", "w") as arquivo:
         arquivo.writelines(linhas)
@@ -107,7 +107,7 @@ def obter_quantidade_em_estoque(id_produto):
     with open("arquivos_cadastro/cadastro_produto.txt", "r") as arquivo:
         for linha in arquivo:
             if linha.startswith(id_produto):
-                quantidade_estoque = int(linha[60:70].strip().replace("_", ""))
+                quantidade_estoque = int(linha[60:70].strip())
                 return quantidade_estoque
     return None
 
@@ -148,7 +148,7 @@ def id_pedido():
     Verifica se o ID inserido pelo usuário está cadastrado no TXT
     com auxilio da função validadora.
     """
-    id_pedido = input("Insira o ID do pedido cadastrado (10 caracteres): ")
+    id_pedido = input("Insira o ID do pedido cadastrado (10 caracteres): ").zfill(10)
     if validar_numero_pedido(id_pedido):
         print("ID encontrado!")
         return id_pedido
@@ -158,11 +158,11 @@ def id_pedido():
 
 
 def id_produto():
-    """
+    """f
     Verifica se o ID inserido pelo usuário está cadastrado no TXT
     com auxilio da função validadora.
     """
-    id_produto = input("Insira o ID do produto cadastrado (10 caracteres): ")
+    id_produto = input("Insira o ID do produto cadastrado (10 caracteres): ").zfill(10)
     if validar_id_produto(id_produto):
         print("ID encontrado!")
         return id_produto
