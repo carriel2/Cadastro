@@ -72,16 +72,16 @@ def validar_cpf(cpf_cliente):
     """
     cpf_cliente = re.sub(r"[^0-9X]", "", cpf_cliente)
 
-    if len(cpf_cliente) == 11 or (len(cpf_cliente) == 10 and cpf_cliente[-1] == "X"):
-        with open("arquivos_cadastro/cadastro_cliente.txt", "r") as arquivo:
-            for linha in arquivo:
-                if cpf_cliente in linha:
-                    print("CPF já cadastrado.")
-                    return None
-        return cpf_cliente
-    else:
+    if len(cpf_cliente) != 11:
         print("CPF inválido.")
         return None
+
+    with open("arquivos_cadastro/cadastro_cliente.txt", "r") as arquivo:
+        for linha in arquivo:
+            if cpf_cliente in linha:
+                print("CPF já cadastrado.")
+                return None
+    return cpf_cliente
 
 
 def validar_nasc(data_nasc):
