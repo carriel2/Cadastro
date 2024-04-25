@@ -11,45 +11,62 @@ class GerenciadorCadastros:
         """
         Método estático para cadastrar um cliente.
         """
-        from cadastros.cadastro_cliente import cadastro_cliente_txt
+        try:
+            from cadastros.cadastro_cliente import cadastro_cliente_txt
 
-        cadastro_cliente_txt()
+            cadastro_cliente_txt()
+        except ImportError:
+            print("Erro ao importar o módulo cadastro_cliente.")
 
     @staticmethod
     def cadastrar_produto():
         """
         Método estático para cadastrar um produto.
         """
-        from cadastros.cadastro_produto import cadastro_produto_txt
+        try:
+            from cadastros.cadastro_produto import cadastro_produto_txt
 
-        cadastro_produto_txt()
+            cadastro_produto_txt()
+        except ImportError:
+            print("Erro ao importar o módulo cadastro_produto.")
 
     @staticmethod
     def cadastrar_pedido():
         """
         Método estático para cadastrar um pedido.
         """
-        from cadastros.cadastro_pedido import cadastro_pedido_txt
+        try:
+            from cadastros.cadastro_pedido import cadastro_pedido_txt
 
-        cadastro_pedido_txt()
+            cadastro_pedido_txt()
+        except ImportError:
+            print("Erro ao importar o módulo cadastro_pedido.")
 
     @staticmethod
     def cadastrar_itens_pedido():
         """
         Método estático para cadastrar itens do pedido.
         """
-        from cadastros.cadastro_itens_pedido import cadastro_itens_txt
+        try:
+            from cadastros.cadastro_itens_pedido import cadastro_itens_txt
 
-        cadastro_itens_txt()
+            cadastro_itens_txt()
+        except ImportError:
+            print("Erro ao importar o módulo cadastro_itens_pedido.")
 
     @staticmethod
     def verificar_arquivo(nome_arquivo):
         """
         Método estático para verificar a existência de um arquivo.
         """
-        from cadastros.cadastro_itens_pedido import verificar_arquivo
+        try:
+            from cadastros.cadastro_itens_pedido import verificar_arquivo
 
-        verificar_arquivo(nome_arquivo)
+            verificar_arquivo(nome_arquivo)
+        except FileNotFoundError:
+            print(f"Arquivo {nome_arquivo} não encontrado.")
+        except Exception as e:
+            print(f"Erro ao verificar arquivo: {e}")
 
 
 class Consultas:
@@ -66,11 +83,9 @@ class Consultas:
         nome = linha[10:40].strip()
         cpf = linha[50:61].strip()
 
-        # Verificar se o CPF possui 11 dígitos ou 10 dígitos + "X" no final
         if (cpf.isdigit() and len(cpf) == 11) or (
             cpf[:-1].isdigit() and cpf[-1] == "X" and len(cpf) == 11
         ):
-            # Se o CPF tiver 11 dígitos ou 10 dígitos + "X", formatá-lo
             cpf_formatado = f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
             return {"id": id_cliente, "nome": nome, "cpf": cpf_formatado}
         else:
@@ -101,10 +116,8 @@ class Consultas:
         id_pedido = linha[:10].strip()
         id_cliente = linha[10:20].strip()
         data_pedido = linha[20:28].strip()
-        pedido_status = linha[
-            28:38
-        ].strip()  # Ajuste no tamanho do campo do status do pedido
-        valor_total = linha[38:].strip()  # Ajuste na posição do valor total
+        pedido_status = linha[28:38].strip()
+        valor_total = linha[38:].strip()
         return {
             "id_pedido": id_pedido,
             "id_cliente": id_cliente,
@@ -139,7 +152,7 @@ class Consultas:
         total = 0
         try:
             with open("arquivos_cadastro/cadastro_itens_pedido.txt", "r") as arquivo:
-                next(arquivo)  # Ignorar cabeçalho
+                next(arquivo)
                 for linha in arquivo:
                     id_pedido_linha = linha[:10].strip()
                     if id_pedido == id_pedido_linha:
@@ -155,7 +168,7 @@ class Consultas:
                             print("Preço não encontrado na linha:", linha)
         except Exception as e:
             print(f"Erro ao calcular valor total do pedido: {str(e)}")
-            return 0  # Retorna 0 em caso de erro
+            return 0
 
         return total
 
@@ -204,8 +217,10 @@ class Cliente:
                 print(
                     f"ID: {cliente['id']}, Nome: {cliente['nome']}, CPF: {cliente['cpf']}"
                 )
+            Cliente.escolhas_cliente()
         else:
-            exit()
+            print("Não há clientes cadastrados.")
+            Cliente.escolhas_cliente()
 
 
 class Produto:
@@ -252,8 +267,10 @@ class Produto:
                 print(
                     f"ID: {produto['id']}, Nome: {produto['nome']}, Quantidade em Estoque: {produto['quantidade']}, Preço Unitário: R$ {produto['preco']}"
                 )
+            Produto.escolhas_produto()
         else:
-            exit()
+            print("Não há produtos cadastrados.")
+            Produto.escolhas_produto()
 
 
 class Pedido:
@@ -333,7 +350,6 @@ class Pedido:
         if pedidos:
             print("Pedidos Cadastrados:")
             for pedido in pedidos:
-                # Formatando a data do pedido
                 data_formatada = datetime.strptime(
                     pedido["data_pedido"], "%d%m%Y"
                 ).strftime("%d/%m/%Y")
@@ -341,8 +357,10 @@ class Pedido:
                 print(
                     f"ID Pedido: {pedido['id_pedido']}, ID Cliente: {pedido['id_cliente']}, Data do Pedido: {data_formatada}, Status do Pedido: {pedido['pedido_status']}, Valor Total: R$ {valor_total}"
                 )
+            Pedido.escolhas_pedido()
         else:
-            exit()
+            print("Não há pedidos cadastrados.")
+            Pedido.escolhas_pedido()
 
 
 class ItensPedido:

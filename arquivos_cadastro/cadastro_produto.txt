@@ -1,3 +1,4 @@
 CADASTRO PRODUTO
 0000000001COMPUTADOR                                        110       100
 0000000002NOTEBOOK                                          130       100
+0000000003CELULAR                                           100       250
