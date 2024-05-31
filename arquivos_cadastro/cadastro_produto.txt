@@ -1,4 +1,5 @@
 CADASTRO PRODUTO
-0000000001COMPUTADOR                                        110       100
-0000000002NOTEBOOK                                          130       100
-0000000003CELULAR                                           100       250
+0000000001TESTE                                             444       20
+0000000002VITORPRODUCT                                      321       42
+0000000003VITAOPRODUTOS                                     41        22
+0000000004VITROCOMPANY                                      341       123
