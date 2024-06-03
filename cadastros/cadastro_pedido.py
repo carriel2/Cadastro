@@ -2,6 +2,8 @@ import os.path
 import re
 import datetime
 
+from exceptions.exceptions import ClienteNaoEncontrado, DataFuturaError, DataInvalida
+
 
 def proximo_sequencial(nome_arquivo):
     """
@@ -115,44 +117,43 @@ def validar_data_pedido(data_pedido):
     """
     Confere se a data do pedido é uma data válida (dd/mm/aaaa).
     """
-    try:
-        if not re.match(r"^\d{2}/\d{2}/\d{4}$", data_pedido):
-            return False
+    if not re.match(r"^\d{2}/\d{2}/\d{4}$", data_pedido):
+        raise DataInvalida("Este formato de data não é válido")
 
-        dia, mes, ano = map(int, data_pedido.split("/"))
+    dia, mes, ano = map(int, data_pedido.split("/"))
 
-        if not (
-            1 <= dia <= 31
-            and 1 <= mes <= 12
-            and ano >= datetime.datetime.now().year
-            and mes >= datetime.datetime.now().month
-        ):
-            return False
+    if not (
+        1 <= dia <= 31
+        and 1 <= mes <= 12
+        and ano >= datetime.datetime.now().year
+        and mes >= datetime.datetime.now().month
+    ):
+        raise DataInvalida("Data Inexistente")
 
-        hoje = datetime.datetime.now().date()
-        data_formatada = datetime.datetime(ano, mes, dia).date()
-        tres_dias_frente = hoje + datetime.timedelta(days=3)
-        if hoje <= data_formatada <= tres_dias_frente:
-            return True
-        else:
-            return False
-    except ValueError:
-        return False
+    hoje = datetime.datetime.now().date()
+    data_formatada = datetime.datetime(ano, mes, dia).date()
+    tres_dias_frente = hoje + datetime.timedelta(days=3)
+    if hoje <= data_formatada <= tres_dias_frente:
+        return True
+    else:
+        raise DataFuturaError("Data Ultrapassa o limite de 3 dias")
 
 
-def id_cliente():
+def id_cliente(id):
     """
     Realiza a confirmação se o id do cliente já está cadastrado ou não no TXT. POSIÇÃO 11 - 20
     """
-    id_cliente = input("Insira o ID do cliente registrado (10 caracteres): ").zfill(10)
+    if not id:
+        id_cliente = input("Insira o ID do cliente registrado (10 caracteres): ").zfill(10)
 
+    else:
+        id_cliente = id.zfill(10)
     if validar_cliente_id(id_cliente):
         print("Cliente confirmado!")
         return id_cliente
     else:
-        print("Cliente não encontrado, certifique-se de cadastrá-lo!")
-        exit()
-
+        raise ClienteNaoEncontrado("Cliente não encontrado, certifique-se de cadastrá-lo!")
+        
 
 def data_pedido():
     """
@@ -160,7 +161,7 @@ def data_pedido():
     """
     while True:
         data_pedido = input(
-            "Insira a data de cadastro do pedido (dd/mm/aaaa e no máximo 3 dias à frente): "
+            "Insira a data de cadastro do pedido (dd/mm/aaaa) e no máximo 3 dias à frente): "
         )
 
         if validar_data_pedido(data_pedido):

@@ -1,5 +1,1 @@
 CADASTRO PRODUTO
-0000000001TESTE                                             444       20
-0000000002VITORPRODUCT                                      321       42
-0000000003VITAOPRODUTOS                                     41        22
-0000000004VITROCOMPANY                                      341       123

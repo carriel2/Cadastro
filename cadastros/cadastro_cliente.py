@@ -1,6 +1,18 @@
 import os.path
 import re
 
+from exceptions.exceptions import (
+    AnoDataInvalida,
+    CPFJaCadastrado,
+    DataNInvalida,
+    DiaInvalido,
+    FormatoInfo,
+    MesInvalido,
+    NomeInvalido,
+    TamanhoCPF,
+)
+from fastapi import HTTPException, status
+
 
 def verificar_arquivo(nome_arquivo):
     """
@@ -16,7 +28,7 @@ def verificar_arquivo(nome_arquivo):
             arquivo.write("CADASTRO CLIENTE\n")
 
 
-def adicionar_informacoes_arquivo(
+def adicionar_informacoes_arquivo_2(
     nome_arquivo, id_cliente, nome_cliente, cpf_cliente, data_nasc, infos_adc
 ):
     """
@@ -40,13 +52,13 @@ def cadastro_cliente_txt():
     """
     verificar_arquivo("cadastro_cliente.txt")
 
-    id_cliente = cadastro_id()
-    nome_cliente = cadastro_nome()
-    cpf_cliente = cadastro_cpf()
-    data_nasc = cadastro_nasc()
-    infos_adc = cadastro_info()
+    id_cliente = proximo_id()
+    nome_cliente = validar_nome()
+    cpf_cliente = validar_cpf()
+    data_nasc = validar_nasc()
+    infos_adc = validar_info()
 
-    adicionar_informacoes_arquivo(
+    adicionar_informacoes_arquivo_2(
         "arquivos_cadastro/cadastro_cliente.txt",
         id_cliente,
         nome_cliente,
@@ -54,16 +66,23 @@ def cadastro_cliente_txt():
         data_nasc,
         infos_adc,
     )
-    print(
-        f"Cliente cadastrado: ID: {id_cliente}, Nome: {nome_cliente}, CPF: {cpf_cliente}, Data de nascimento: {data_nasc}, Inf. Adicionais: {infos_adc}"
-    )
 
 
-def validar_nome(nome):
+def validar_nome(nome_cliente: str) -> bool:
     """
     Valida o nome do cliente.
+
+    Parâmetros:
+        nome_cliente: Nome do cliente.
+
+    Retorna:
+        - True se o nome for válido, False caso contrário.
     """
-    return bool(re.match("^[a-zA-Z]{1,40}$", nome))
+    if len(nome_cliente) > 40 or " " in nome_cliente:
+        raise NomeInvalido(
+            "O nome inserido excede o limite de caracteres ou contém espaços "
+        )
+    return True
 
 
 def validar_cpf(cpf_cliente):
@@ -73,14 +92,12 @@ def validar_cpf(cpf_cliente):
     cpf_cliente = re.sub(r"[^0-9X]", "", cpf_cliente)
 
     if len(cpf_cliente) != 11:
-        print("CPF inválido.")
-        return None
+        raise TamanhoCPF("Tamanho do CPF excede os limites")
 
     with open("arquivos_cadastro/cadastro_cliente.txt", "r") as arquivo:
         for linha in arquivo:
             if cpf_cliente in linha:
-                print("CPF já cadastrado.")
-                return None
+                raise CPFJaCadastrado("CPF Inserido já cadastrado")
     return cpf_cliente
 
 
@@ -91,34 +108,45 @@ def validar_nasc(data_nasc):
     data_nasc = re.sub(r"^[0-9/]$", "", data_nasc)
 
     if len(data_nasc) != 10 or data_nasc[2] != "/" or data_nasc[5] != "/":
-        return False
+        raise DataNInvalida("Formato da data inválido")
 
     dia, mes, ano = map(int, data_nasc.split("/"))
 
     if not 1899 <= ano <= 2006:
-        return False
+        raise AnoDataInvalida("Ano da data é maior que 2006 ou menor que 1899")
 
     if not 1 <= mes <= 12:
-        return False
+        raise MesInvalido("O mês inserido é inválido")
 
     if mes in [1, 3, 5, 7, 8, 10, 12]:
-        return 1 <= dia <= 31
+        if not 1 <= dia <= 31:
+            raise DiaInvalido("O dia inserido é inválido")
     elif mes in [4, 6, 9, 11]:
-        return 1 <= dia <= 30
+        if not 1 <= dia <= 30:
+            raise DiaInvalido("O dia inserido é inválido")
     elif mes == 2:
         if (ano % 4 == 0 and ano % 100 != 0) or (ano % 400 == 0):
-            return 1 <= dia <= 29
+            if not 1 <= dia <= 29:
+                raise DiaInvalido("O dia inserido é inválido")
         else:
-            return 1 <= dia <= 28
+            if not 1 <= dia <= 28:
+                raise DiaInvalido("O dia inserido é inválido")
     else:
-        return False
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Data inválida"
+        )
+
+    return True
 
 
 def validar_info(outras_infos):
     """
     Valida as informações adicionais do cliente.
     """
-    return len(outras_infos) <= 30
+    if len(outras_infos) != 30 or " " in outras_infos:
+        raise FormatoInfo("Informações adicionais não pode conter espaços ou mais do que 30 caracteres")
+
+    return True
 
 
 def proximo_id():
@@ -134,70 +162,6 @@ def proximo_id():
         ultimo_id_digitos = "".join(filter(str.isdigit, ultimo_id))
         proximo = int(ultimo_id_digitos) + 1
         return str(proximo).zfill(10)
-
-
-def cadastro_id():
-    """
-    Realiza o cadastro do ID do cliente. POSIÇÃO 1-10
-    """
-    return proximo_id()
-
-
-def cadastro_nome():
-    """
-    Realiza o cadastro do nome do cliente. POSIÇÃO 11-50
-    """
-    while True:
-        nome_cliente = input(
-            "Insira o nome do cliente (máximo de 40 caracteres e sem espaços): "
-        ).upper()
-        if validar_nome(nome_cliente):
-            return nome_cliente
-        else:
-            print(
-                "Nome inválido. Por favor, insira um nome com no máximo 40 caracteres."
-            )
-
-
-def cadastro_cpf():
-    """
-    Realiza o cadastro do CPF do cliente. POSIÇÃO 51-62
-    """
-    while True:
-        cpf_cliente = (
-            input("Digite o CPF do cliente: ").replace(".", "").replace("-", "")
-        )
-        cpf_validado = validar_cpf(cpf_cliente)
-        if cpf_validado:
-            return cpf_validado
-
-
-def cadastro_nasc():
-    """
-    Realiza o cadastro da data de nascimento do cliente. POSIÇÃO 62-70
-    """
-    while True:
-        data_nasc = input(
-            "Digite sua data de nascimento (no formato dd/mm/aaaa): "
-        ).replace(" ", "")
-        if validar_nasc(data_nasc):
-            return data_nasc
-        else:
-            print("Data de nascimento inválida, insira no formato dd/mm/aaaa")
-
-
-def cadastro_info():
-    """
-    Realiza o cadastro das informações adicionais do cliente. POSIÇÃO 70-99
-    """
-    while True:
-        infos_adc = input("Digite as informações adicionais do cliente ").replace(
-            " ", ""
-        )
-        if validar_info(infos_adc):
-            return infos_adc
-        else:
-            print("Limite de caracteres excedidos. Máx 30 ")
 
 
 cadastro_cliente_txt

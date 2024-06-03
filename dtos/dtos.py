@@ -5,3 +5,8 @@ class ClienteDTO(BaseModel):
     cpf:str
     inf_adicionais:str
     data_nasc:str
+    
+class PedidoDTO(BaseModel):
+    status:str
+    id_cliente:str
+    data:str

@@ -1,57 +1,197 @@
 from fastapi import FastAPI, HTTPException, status
-
-from cadastros.cadastro_cliente import adicionar_informacoes_arquivo, cadastro_id, verificar_arquivo
-from consultas.consulta_pedido import Consultas
-
-import dtos
-
+from cadastros.cadastro_cliente import (
+    adicionar_informacoes_arquivo_2,
+    proximo_id,
+    validar_cpf,
+    validar_info,
+    validar_nasc,
+    validar_nome,
+    verificar_arquivo,
+)
+from consultas.consultas import Consultas
+from cadastros.cadastro_pedido import (
+    adicionar_informacoes_arquivo,
+    proximo_sequencial,
+    validar_data_pedido,
+    verificar_arquivo,
+    id_cliente,
+)
+from exceptions.exceptions import (
+    CPFException,
+    ClienteException,
+    DataException,
+    NomeInvalido,
+)
+import dtos.dtos as dtos
 import os
 
 app = FastAPI()
 
+
 @app.get("/consulta/pedido")
 def get_pedidos():
+    """
+    Consulta todos os pedidos cadastrados.
+
+    Retorna:
+        - Uma lista de pedidos formatados.
+    """
     diretorio = "arquivos_cadastro"
     caminho_arquivo = os.path.join(diretorio, "cadastro_pedido.txt")
     formatar_funcao = Consultas.formatar_pedido
-    
+
     return Consultas.consultar_arquivo(caminho_arquivo, formatar_funcao)
-    
-@app.get("/consulta/cliente")
-def get_clientes():
-    diretorio ="arquivos_cadastro"
+
+    """
+    Consulta todos os clientes cadastrados.
+
+    Retorna:
+        - Uma lista de clientes formatados.
+    """
+    diretorio = "arquivos_cadastro"
     caminho_arquivo = os.path.join(diretorio, "cadastro_cliente.txt")
     formatar_funcao = Consultas.formatar_cliente
-    
+
     return Consultas.consultar_arquivo(caminho_arquivo, formatar_funcao)
 
+
+@app.get("/consulta/produtos")
+def get_produtos():
+    """
+    Consulta todos os produtos cadastrados.
+
+    Retorna:
+        - Uma lista de produtos formatados
+    """
+    diretorio = "arquivos_cadastro"
+    caminho_arquivo = os.path.join(diretorio, "cadastro_produto.txt")
+
+    return Consultas.consultar_arquivo(caminho_arquivo)
+
+
+@app.post("/cadastrar/pedido")
+def create_pedido(body: dtos.PedidoDTO):
+    """
+    Cadastra um novo pedido.
+
+    Args:
+        body: Objeto PedidoDTO contendo as informações do pedido.
+
+    Retorna:
+        - Objeto PedidoDTO do pedido cadastrado.
+
+    Lança:
+        - HTTPException: Se ocorrer um erro durante o cadastro do pedido.
+    """
+    try:
+        verificar_arquivo("cadastro_pedido.txt")
+
+        id_pedido = proximo_sequencial("arquivos_cadastro/cadastro_pedido.txt")
+        cliente_id = id_cliente(body.id_cliente)
+        situacao = body.status
+        data = body.data
+
+        validar_data_pedido(data)
+        adicionar_informacoes_arquivo(
+            "arquivos_cadastro/cadastro_pedido.txt",
+            id_pedido,
+            cliente_id,
+            data,
+            situacao,
+        )
+        return body
+
+    except ClienteException as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except DataException as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Formato de data inserido é inválido.",
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
 @app.post("/cadastrar/cliente")
-def create_cliente(body:dtos.ClienteDTO):
-    
-    verificar_arquivo("cadastro_cliente.txt")
+def create_cliente(body: dtos.ClienteDTO):
+    """
+    Cadastra um novo cliente.
 
-    id_cliente = cadastro_id()
-    nome_cliente = body.nome
-    cpf_cliente = body.cpf
-    data_nasc = body.data_nasc
-    infos_adc = body.inf_adicionais
+    Parâmetros:
+        body: Objeto PedidoDTO contendo as informações do cliente.
 
-    adicionar_informacoes_arquivo(
-        "arquivos_cadastro/cadastro_cliente.txt",
-        id_cliente,
-        nome_cliente,
-        cpf_cliente,
-        data_nasc,
-        infos_adc,
-    ) 
-    
-    return body
+    Retorna:
+        - Objeto ClienteDTO do clienet cadastrado.
+
+    Lança:
+        - HTTPException: Se ocorrer um erro durante o cadastro do cliente.
+    """
+
+    try:
+        verificar_arquivo("cadastro_cliente.txt")
+
+        cliente_id = proximo_id()
+        nome_cliente = body.nome
+        cpf_cliente = body.cpf
+        data_nasc = body.data_nasc
+        inf_adc = body.inf_adicionais
+
+        validar_nome(nome_cliente)
+        validar_cpf(cpf_cliente)
+        validar_info(inf_adc)
+        validar_nasc(data_nasc)
+
+        adicionar_informacoes_arquivo_2(
+            "arquivos_cadastro/cadastro_cliente.txt",
+            cliente_id,
+            nome_cliente,
+            cpf_cliente,
+            inf_adc,
+            data_nasc,
+        )
+
+        return body
+
+    except (CPFException, DataException, ClienteException) as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@app.get("/consulta/cliente")
+def get_clientes():
+    """
+    Consulta todos os clientes cadastrados.
+
+    Retorna:
+        - Uma lista de clientes formatados.
+    """
+    diretorio = "arquivos_cadastro"
+    caminho_arquivo = os.path.join(diretorio, "cadastro_cliente.txt")
+    formatar_funcao = Consultas.formatar_cliente
+
+    return Consultas.consultar_arquivo(caminho_arquivo, formatar_funcao)
+
 
 @app.put("/alterar/cliente/{id}")
-def update_cliente(id:str,body:dtos.ClienteDTO):
-    
+def update_cliente(id: str, body: dtos.ClienteDTO):
+    """
+    Atualiza as informações de um cliente.
+
+    Parâmetros:
+        - id: ID do cliente a ser atualizado.
+        - body: Objeto ClienteDTO contendo as novas informações do cliente.
+
+    Retorna:
+        - Objeto ClienteDTO do cliente atualizado.
+
+    Exceções:
+        - HTTPException: Se ocorrer um erro durante a atualização do cliente.
+    """
     id_cliente = id.zfill(10)
-    
+
     try:
         encontrado = False
         clientes_atualizados = []
@@ -61,31 +201,40 @@ def update_cliente(id:str,body:dtos.ClienteDTO):
                 if linha.startswith(id_cliente):
                     encontrado = True
                     novo_nome = body.nome
-                    
                     novo_cpf = body.cpf
-                    
                     nova_data_nascimento = body.data_nasc
-                    
                     info_adicionais = body.inf_adicionais
-                    
+
                     if len(novo_nome) > 40:
-                       raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Nome Excede o limite de 40 caracteres")
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Nome excede o limite de 40 caracteres",
+                        )
 
                     if (
                         len(novo_cpf) != 11
                         or not novo_cpf[:-1].isdigit()
                         or (novo_cpf[-1] not in "0123456789X")
                     ):
-                       raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insira um formato de CPF Válido")
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Insira um formato de CPF válido",
+                        )
 
                     if (
                         len(nova_data_nascimento) != 10
                         or not nova_data_nascimento.replace("/", "").isdigit()
                     ):
-                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Insira um formato de data válido")
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Insira um formato de data válido",
+                        )
 
                     if len(info_adicionais) > 30:
-                       raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Informações adicionais excede o limite de 30 caracteres")
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Informações adicionais excedem o limite de 30 caracteres",
+                        )
 
                     nova_data_nascimento = nova_data_nascimento.replace("/", "")
 
@@ -98,49 +247,74 @@ def update_cliente(id:str,body:dtos.ClienteDTO):
                         + "\n"
                     )
                 clientes_atualizados.append(linha)
-                
 
             if not encontrado:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não Encontrado")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Cliente não encontrado",
+                )
 
             with open("arquivos_cadastro/cadastro_cliente.txt", "w") as arquivo:
                 arquivo.writelines(clientes_atualizados)
 
             return body
-        
+
     except FileNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo de cadastro não encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Arquivo de cadastro não encontrado",
+        )
     except HTTPException as e:
         raise e
     except Exception as e:
-       raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
-   
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        ) from e
+
+
 @app.delete("/delete/cliente/{id}")
-def delete_cliente(id:str):
-        
-        id_cliente = id.rjust(10, "0")
-        try:
-            with open("arquivos_cadastro/cadastro_cliente.txt", "r+") as arquivo:
-                linhas = arquivo.readlines()
-                encontrado = False
-                arquivo.seek(0)
-                for linha in linhas:
-                    if linha.startswith(id_cliente):
-                        encontrado = True
-                        continue
-                    arquivo.write(linha)
-                arquivo.truncate()
+def delete_cliente(id: str):
+    """
+    Deleta um cliente pelo ID.
 
-            if encontrado:
-                return "Sucesso"
-            else:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ID do cliente não encontrado")
+    Parâmetros:
+        - id: ID do cliente a ser deletado.
 
-        except FileNotFoundError:
-           raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Arquivo de cadastro de clientes não encontrado")
-        except HTTPException as e:
-            raise e
-        except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
-        
-        
+    Retorna:
+        - Uma mensagem de sucesso.
+
+    Exceções:
+        - HTTPException: Se ocorrer um erro durante a deleção do cliente.
+    """
+    id_cliente = id.rjust(10, "0")
+    try:
+        with open("arquivos_cadastro/cadastro_cliente.txt", "r+") as arquivo:
+            linhas = arquivo.readlines()
+            encontrado = False
+            arquivo.seek(0)
+            for linha in linhas:
+                if linha.startswith(id_cliente):
+                    encontrado = True
+                    continue
+                arquivo.write(linha)
+            arquivo.truncate()
+
+        if encontrado:
+            return "Sucesso"
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="ID do cliente não encontrado",
+            )
+
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Arquivo de cadastro de clientes não encontrado",
+        )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        ) from e
