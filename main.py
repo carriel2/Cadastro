@@ -162,34 +162,104 @@ def get_produtos():
     return Consultas.consultar_arquivo(caminho_arquivo)
 
 
-@app.put("/alterar/produto")
-def update_produtos(id:str, body:dtos.ProdutoDTO):
-
+@app.put("/alterar/produto/{id}")   
+def update_produtos(id: str, body: dtos.ProdutoDTO):
     id_produto = id.zfill(10)
-    
+
     try:
         encontrado = False
         produtos_atualizados = []
+
         with open("arquivos_cadastro/cadastro_produto.txt", "r") as arquivo:
-            linhas = arquivo.readlines()
-            for linha in linhas:
-                if linha.startswith(id):
+            primeira_linha = arquivo.readline()
+            for linha in arquivo:
+                if linha.startswith(id_produto):
                     encontrado = True
-                    linha = f"{id_produto}{novo_nome.ljust(30)}{str(nova_quantidade).rjust(5)}{str(novo_preco).rjust(15)}\n"
-                produtos_atualizados.append(linha)
+                    nova_desc = body.descricao
+                    novo_estoque = body.estoque
+                    novo_preco = body.preco
+
+                    validar_produto(nova_desc)
+                    validar_estoque(novo_estoque)
+                    validar_preco(novo_preco)
+
+                    linha_atualizada = (
+                        str(id_produto)
+                        + nova_desc.ljust(50)
+                        + novo_estoque.ljust(10)
+                        + novo_preco
+                        + "\n"
+                    )
+                    produtos_atualizados.append(linha_atualizada)
+                else:
+                    produtos_atualizados.append(linha)
 
         if not encontrado:
-            print(f"Produto com ID {id_produto} não encontrado.")
-            return Produto.escolhas_produto()
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Produto não encontrado"
+            )
 
         with open("arquivos_cadastro/cadastro_produto.txt", "w") as arquivo:
+            arquivo.write(primeira_linha)
             arquivo.writelines(produtos_atualizados)
 
-    except FileNotFoundError:
-        print("Arquivo 'cadastro_produto.txt' não encontrado.")
-    except Exception as e:
-        print(f"Erro ao alterar produto: {str(e)}")
+        return body
 
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Arquivo 'cadastro_produto.txt' não encontrado.",
+        )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        ) from e
+
+
+@app.delete("/delete/produto/{id}")
+def delete_produto(id:str):
+    
+    """
+    Deleta um produto pelo ID.
+
+    Parâmetros:
+        - id: ID do produto a ser deletado.
+
+    Retorna:
+        - Uma mensagem de sucesso.
+
+    Exceções:
+        - HTTPException: Se ocorrer um erro durante a deleção do produto.
+    """
+    
+    id_produto = id.rjust(10, "0")
+    try:
+        with open("arquivos_cadastro/cadastro_produto.txt", "r+") as arquivo:
+            linhas = arquivo.readlines()
+            encontrado = False
+            arquivo.seek(0)
+            for linha in linhas:
+                if linha.startswith(id_produto):
+                    encontrado = True
+                    continue
+                arquivo.write(linha)
+                arquivo.truncate()
+                
+            if encontrado:
+                return "Sucesso"
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="ID do produto não encontrado",
+                )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        ) from e
 
 @app.post("/cadastrar/cliente")
 def create_cliente(body: dtos.ClienteDTO):
@@ -280,36 +350,10 @@ def update_cliente(id: str, body: dtos.ClienteDTO):
                     nova_data_nascimento = body.data_nasc
                     info_adicionais = body.inf_adicionais
 
-                    if len(novo_nome) > 40:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Nome excede o limite de 40 caracteres",
-                        )
-
-                    if (
-                        len(novo_cpf) != 11
-                        or not novo_cpf[:-1].isdigit()
-                        or (novo_cpf[-1] not in "0123456789X")
-                    ):
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Insira um formato de CPF válido",
-                        )
-
-                    if (
-                        len(nova_data_nascimento) != 10
-                        or not nova_data_nascimento.replace("/", "").isdigit()
-                    ):
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Insira um formato de data válido",
-                        )
-
-                    if len(info_adicionais) > 30:
-                        raise HTTPException(
-                            status_code=status.HTTP_400_BAD_REQUEST,
-                            detail="Informações adicionais excedem o limite de 30 caracteres",
-                        )
+                    validar_nome(novo_nome)
+                    validar_cpf(novo_cpf)
+                    validar_nasc(nova_data_nascimento)
+                    validar_info(info_adicionais)
 
                     nova_data_nascimento = nova_data_nascimento.replace("/", "")
 
