@@ -1,8 +1,10 @@
 import os.path
 import re
 
+from exceptions.exceptions import DescricaoInvalida, EstoqueInvalido, PrecoError, PrecoZeroError
 
-def proximo_sequencial(nome_arquivo):
+
+def proximo_sequencial_2(nome_arquivo):
     """
     Gera o próximo número sequencial e o retorna.
     Se o arquivo não existir, cria o arquivo e escreve o primeiro sequencial.
@@ -48,7 +50,7 @@ def verificar_arquivo(nome_arquivo):
             arquivo.write("CADASTRO PRODUTO\n")
 
 
-def adicionar_informacoes_arquivo(
+def adicionar_informacoes_arquivo_3(
     nome_arquivo,
     id_armazenado,
     descricao_armazenada,
@@ -71,39 +73,43 @@ def cadastro_produto_txt():
     """
     verificar_arquivo("cadastro_produto.txt")
 
-    id_armazenado = proximo_sequencial("arquivos_cadastro/cadastro_produto.txt")
-    descricao_armazenada = desc_produto()
-    estoque_armazenado = qtd_estoque()
-    preco_armazenado = preco_unitario()
+    id_armazenado = proximo_sequencial_2("arquivos_cadastro/cadastro_produto.txt")
+    descricao_armazenada = validar_produto()
+    estoque_armazenado = validar_estoque()
+    preco_armazenado = validar_preco()
 
-    adicionar_informacoes_arquivo(
+    adicionar_informacoes_arquivo_3(
         "arquivos_cadastro/cadastro_produto.txt",
         id_armazenado,
         descricao_armazenada,
         estoque_armazenado,
         preco_armazenado,
     )
-    print(
-        f"ID: {id_armazenado} Descrição Produto: {descricao_armazenada} Estoque: {estoque_armazenado} Preço Unitário: {preco_armazenado}"
-    )
 
 
 def validar_produto(desc_produto):
     """
     Valida a descrição do produto.
+    Permite apenas texto com no máximo 40 caracteres e sem espaços.
     """
-    return bool(re.match("^[a-zA-Z0-9]{1,50}$", desc_produto))
+    if len(desc_produto) <= 40 and re.match("^[a-zA-Z0-9]+$", desc_produto):
+        return True
+    else:
+        raise DescricaoInvalida("Insira uma descrição que contenha no maximo 40 caracteres e sem espaços")
 
 
 def validar_estoque(qtd_estoque):
     """
     Valida a quantidade de produtos disponível em estoque.
     """
+
+    if qtd_estoque == '0':
+        raise EstoqueInvalido("Estoque não pode ser zero")
+
     if re.match(r"^[0-9]{1,10}$", qtd_estoque):
-        return qtd_estoque
+        return True
     else:
-        print("Quantidade inválida.")
-        return None
+        raise EstoqueInvalido("Quantidade inserida do estoque é inválida")
 
 
 def validar_preco(preco):
@@ -115,54 +121,12 @@ def validar_preco(preco):
         if preco_float > 0 and len(preco) <= 30:
             return preco
         else:
-            if preco_float <= 0:
-                print("O preço deve ser maior que zero.")
+            if preco_float <= 1:
+                raise PrecoZeroError("O valor deve ser maior do que 0")
             else:
-                print("Preço inválido.")
-            return None
+                raise PrecoError("O preco inserido não é válido")
     except ValueError:
-        print("Preço inválido.")
-        return None
-
-
-def desc_produto():
-    """
-    Solicita a descrição do produto ao usuário. POSIÇÃO 11 - 60
-    """
-    while True:
-        descricao_produto = input(
-            "Insira a descrição do produto (Máx 50 caracteres e sem espaço): "
-        ).upper()
-        if validar_produto(descricao_produto):
-            return descricao_produto
-        else:
-            print("Insira uma descrição válida!")
-
-
-def qtd_estoque():
-    """
-    Solicita a quantidade de produtos disponíveis em estoque ao usuário. POSIÇÃO 61 - 70
-    """
-    while True:
-        estoque = input(
-            "Insira a quantidade de produtos disponíveis em estoque (Máx 10 caracteres): "
-        )
-        estoque_validado = validar_estoque(estoque)
-        if estoque_validado is not None:
-            return estoque_validado
-
-
-def preco_unitario():
-    """
-    Solicita o preço unitário do produto ao usuário. POSIÇÃO 71 - 80
-    """
-    while True:
-        preco = input(
-            "Insira o preço unitário do produto (Máx 10 caracteres): "
-        ).strip()
-        preco_validado = validar_preco(preco)
-        if preco_validado is not None:
-            return preco_validado
+        raise PrecoError("Preço Inválido")
 
 
 cadastro_produto_txt

@@ -86,3 +86,36 @@ class FormatoInfo(ClienteException):
     """
     Excecao para quando as inf. adicionais do cliente forem inválidas (conter espaços ou + de 30 caracteres)
     """
+
+
+# --------------------------------------------------------------------------------------------- #
+
+
+class ProdutoException(Exception):
+    """
+    Excecao pai para as excecoes de produto
+    """
+
+
+class EstoqueInvalido(ProdutoException):
+    """
+    Excecao para quando o formato do estoque for inválido
+    """
+
+
+class PrecoError(ProdutoException):
+    """
+    Excecao para quando o preco inserido for inválido
+    """
+
+
+class PrecoZeroError(ProdutoException):
+    """
+    Excecao para quando o preco inserido for < ou = a 0
+    """
+
+
+class DescricaoInvalida(ProdutoException):
+    """
+    Excecao para quando a descricao inserida for invalida
+    """

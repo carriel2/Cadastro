@@ -1,1 +1,13 @@
 CADASTRO PRODUTO
+0000000001TESTANDO                                          1000      12
+0000000002TESTANDE                                          1000      12
+0000000003VITRANGOLANGO                                     999       120
+0000000004VITRANGOLANGO                                     999       120
+0000000005VITRANGOLANGO                                     0         2
+0000000006VITRANGOLANGO                                     0         2
+0000000007VITRANGOLANGO                                     0         2
+0000000008VITRANGOLANGO                                     0         2
+0000000009VITRANGOLANGO                                     0         2
+0000000010VITRANGOLANGO                                     0         2
+0000000011VITRANGOLANGO                                     1         2
+0000000012VITRANGOLANGO                                     1         2

@@ -8,6 +8,7 @@ from cadastros.cadastro_cliente import (
     validar_nome,
     verificar_arquivo,
 )
+from cadastros.cadastro_produto import adicionar_informacoes_arquivo_3, proximo_sequencial_2, validar_estoque, validar_preco, validar_produto
 from consultas.consultas import Consultas
 from cadastros.cadastro_pedido import (
     adicionar_informacoes_arquivo,
@@ -21,52 +22,12 @@ from exceptions.exceptions import (
     ClienteException,
     DataException,
     NomeInvalido,
+    ProdutoException,
 )
 import dtos.dtos as dtos
 import os
 
 app = FastAPI()
-
-
-@app.get("/consulta/pedido")
-def get_pedidos():
-    """
-    Consulta todos os pedidos cadastrados.
-
-    Retorna:
-        - Uma lista de pedidos formatados.
-    """
-    diretorio = "arquivos_cadastro"
-    caminho_arquivo = os.path.join(diretorio, "cadastro_pedido.txt")
-    formatar_funcao = Consultas.formatar_pedido
-
-    return Consultas.consultar_arquivo(caminho_arquivo, formatar_funcao)
-
-    """
-    Consulta todos os clientes cadastrados.
-
-    Retorna:
-        - Uma lista de clientes formatados.
-    """
-    diretorio = "arquivos_cadastro"
-    caminho_arquivo = os.path.join(diretorio, "cadastro_cliente.txt")
-    formatar_funcao = Consultas.formatar_cliente
-
-    return Consultas.consultar_arquivo(caminho_arquivo, formatar_funcao)
-
-
-@app.get("/consulta/produtos")
-def get_produtos():
-    """
-    Consulta todos os produtos cadastrados.
-
-    Retorna:
-        - Uma lista de produtos formatados
-    """
-    diretorio = "arquivos_cadastro"
-    caminho_arquivo = os.path.join(diretorio, "cadastro_produto.txt")
-
-    return Consultas.consultar_arquivo(caminho_arquivo)
 
 
 @app.post("/cadastrar/pedido")
@@ -114,6 +75,79 @@ def create_pedido(body: dtos.PedidoDTO):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
+
+
+@app.get("/consulta/pedido")
+def get_pedidos():
+    """
+    Consulta todos os pedidos cadastrados.
+
+    Retorna:
+        - Uma lista de pedidos formatados.
+    """
+    diretorio = "arquivos_cadastro"
+    caminho_arquivo = os.path.join(diretorio, "cadastro_pedido.txt")
+    formatar_funcao = Consultas.formatar_pedido
+
+    return Consultas.consultar_arquivo(caminho_arquivo, formatar_funcao)
+
+    """
+    Consulta todos os clientes cadastrados.
+
+    Retorna:
+        - Uma lista de clientes formatados.
+    """
+    diretorio = "arquivos_cadastro"
+    caminho_arquivo = os.path.join(diretorio, "cadastro_cliente.txt")
+    formatar_funcao = Consultas.formatar_cliente
+
+    return Consultas.consultar_arquivo(caminho_arquivo, formatar_funcao)
+
+
+@app.post("/cadastrar/produto")
+def create_produto(body: dtos.ProdutoDTO):
+    """
+    Cadastra um novo produto.
+    
+    
+    """
+    try:
+        verificar_arquivo("cadastro_produto.txt")
+        
+        id_produto = proximo_sequencial_2("arquivos_cadastro/cadastro_produto.txt")
+        descricao = body.descricao
+        estoque = body.estoque
+        preco = body.preco
+        
+        validar_produto(descricao)
+        validar_estoque(estoque)
+        validar_preco(preco)
+        adicionar_informacoes_arquivo_3(
+            "arquivos_cadastro/cadastro_produto.txt",
+            id_produto,
+            descricao,
+            estoque,
+            preco
+            
+        )
+        return body
+    
+    except ProdutoException as e :
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+ 
+@app.get("/consulta/produtos")
+def get_produtos():
+    """
+    Consulta todos os produtos cadastrados.
+
+    Retorna:
+        - Uma lista de produtos formatados
+    """
+    diretorio = "arquivos_cadastro"
+    caminho_arquivo = os.path.join(diretorio, "cadastro_produto.txt")
+
+    return Consultas.consultar_arquivo(caminho_arquivo)
 
 
 @app.post("/cadastrar/cliente")

@@ -98,7 +98,7 @@ def validar_cpf(cpf_cliente):
         for linha in arquivo:
             if cpf_cliente in linha:
                 raise CPFJaCadastrado("CPF Inserido já cadastrado")
-    return cpf_cliente
+    return True
 
 
 def validar_nasc(data_nasc):
@@ -143,8 +143,10 @@ def validar_info(outras_infos):
     """
     Valida as informações adicionais do cliente.
     """
-    if len(outras_infos) != 30 or " " in outras_infos:
-        raise FormatoInfo("Informações adicionais não pode conter espaços ou mais do que 30 caracteres")
+    if len(outras_infos) > 30 or " " in outras_infos:
+        raise FormatoInfo(
+            "Informações adicionais não pode conter espaços ou mais do que 30 caracteres"
+        )
 
     return True
 
