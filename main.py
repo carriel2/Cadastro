@@ -8,7 +8,13 @@ from cadastros.cadastro_cliente import (
     validar_nome,
     verificar_arquivo,
 )
-from cadastros.cadastro_produto import adicionar_informacoes_arquivo_3, proximo_sequencial_2, validar_estoque, validar_preco, validar_produto
+from cadastros.cadastro_produto import (
+    adicionar_informacoes_arquivo_3,
+    proximo_sequencial_2,
+    validar_estoque,
+    validar_preco,
+    validar_produto,
+)
 from consultas.consultas import Consultas
 from cadastros.cadastro_pedido import (
     adicionar_informacoes_arquivo,
@@ -108,17 +114,24 @@ def get_pedidos():
 def create_produto(body: dtos.ProdutoDTO):
     """
     Cadastra um novo produto.
-    
-    
+
+    Args:
+        body: Objeto ProdutoDTO contendo as informações do produto.
+
+    Retorna:
+        - Objeto ProdutoDTO do produto cadastrado.
+
+    Lança:
+        - HTTPException: Se ocorrer um erro durante o cadastro do produto.
     """
     try:
         verificar_arquivo("cadastro_produto.txt")
-        
+
         id_produto = proximo_sequencial_2("arquivos_cadastro/cadastro_produto.txt")
         descricao = body.descricao
         estoque = body.estoque
         preco = body.preco
-        
+
         validar_produto(descricao)
         validar_estoque(estoque)
         validar_preco(preco)
@@ -127,15 +140,14 @@ def create_produto(body: dtos.ProdutoDTO):
             id_produto,
             descricao,
             estoque,
-            preco
-            
+            preco,
         )
         return body
-    
-    except ProdutoException as e :
+
+    except ProdutoException as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    
- 
+
+
 @app.get("/consulta/produtos")
 def get_produtos():
     """
@@ -148,6 +160,35 @@ def get_produtos():
     caminho_arquivo = os.path.join(diretorio, "cadastro_produto.txt")
 
     return Consultas.consultar_arquivo(caminho_arquivo)
+
+
+@app.put("/alterar/produto")
+def update_produtos(id:str, body:dtos.ProdutoDTO):
+
+    id_produto = id.zfill(10)
+    
+    try:
+        encontrado = False
+        produtos_atualizados = []
+        with open("arquivos_cadastro/cadastro_produto.txt", "r") as arquivo:
+            linhas = arquivo.readlines()
+            for linha in linhas:
+                if linha.startswith(id):
+                    encontrado = True
+                    linha = f"{id_produto}{novo_nome.ljust(30)}{str(nova_quantidade).rjust(5)}{str(novo_preco).rjust(15)}\n"
+                produtos_atualizados.append(linha)
+
+        if not encontrado:
+            print(f"Produto com ID {id_produto} não encontrado.")
+            return Produto.escolhas_produto()
+
+        with open("arquivos_cadastro/cadastro_produto.txt", "w") as arquivo:
+            arquivo.writelines(produtos_atualizados)
+
+    except FileNotFoundError:
+        print("Arquivo 'cadastro_produto.txt' não encontrado.")
+    except Exception as e:
+        print(f"Erro ao alterar produto: {str(e)}")
 
 
 @app.post("/cadastrar/cliente")
