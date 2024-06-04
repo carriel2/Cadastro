@@ -1,3 +1,4 @@
 CADASTRO CLIENTE
-0000000001VITINHO                                 4681550784122032005TESTANDO                      
-0000000002VITINHO                                 46813288822teste20/01/2002
+0000000003PEDRO                                   46815508898testando29/09/2001
+0000000004PEDRO                                   46815508808testando29092001
+0000000005PEDRO                                   4681350880829092001testando

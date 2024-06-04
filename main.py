@@ -110,6 +110,48 @@ def get_pedidos():
     return Consultas.consultar_arquivo(caminho_arquivo, formatar_funcao)
 
 
+@app.delete("/delete/pedido/{id}")
+def delete_pedido(id: str):
+    """
+    Deleta um pedido pelo ID.
+
+    Parâmetros:
+        - id: ID do pedido a ser deletado.
+
+    Retorna:
+        - Uma mensagem de sucesso.
+
+    Exceções:
+        - HTTPException: Se ocorrer um erro durante a deleção do pedido.
+    """
+    id_pedido = id.rjust(10, "0")
+    try:
+        with open("arquivos_cadastro/cadastro_pedido.txt", "r+") as arquivo:
+            linhas = arquivo.readlines()
+            encontrado = False
+            arquivo.seek(0)
+            for linha in linhas:
+                if linha .startswith(id_pedido):
+                    encontrado = True
+                    continue
+                arquivo.write(linha)
+                arquivo.truncate()
+                
+            if encontrado:
+                return "Sucesso"
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Pedido não encontrado",
+                )
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(
+            stauts_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details=str(e)
+        ) from e
+                
+                    
 @app.post("/cadastrar/produto")
 def create_produto(body: dtos.ProdutoDTO):
     """
@@ -162,7 +204,7 @@ def get_produtos():
     return Consultas.consultar_arquivo(caminho_arquivo)
 
 
-@app.put("/alterar/produto/{id}")   
+@app.put("/alterar/produto/{id}")
 def update_produtos(id: str, body: dtos.ProdutoDTO):
     id_produto = id.zfill(10)
 
@@ -219,8 +261,7 @@ def update_produtos(id: str, body: dtos.ProdutoDTO):
 
 
 @app.delete("/delete/produto/{id}")
-def delete_produto(id:str):
-    
+def delete_produto(id: str):
     """
     Deleta um produto pelo ID.
 
@@ -233,7 +274,7 @@ def delete_produto(id:str):
     Exceções:
         - HTTPException: Se ocorrer um erro durante a deleção do produto.
     """
-    
+
     id_produto = id.rjust(10, "0")
     try:
         with open("arquivos_cadastro/cadastro_produto.txt", "r+") as arquivo:
@@ -246,7 +287,7 @@ def delete_produto(id:str):
                     continue
                 arquivo.write(linha)
                 arquivo.truncate()
-                
+
             if encontrado:
                 return "Sucesso"
             else:
@@ -260,6 +301,7 @@ def delete_produto(id:str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         ) from e
+
 
 @app.post("/cadastrar/cliente")
 def create_cliente(body: dtos.ClienteDTO):
@@ -289,14 +331,17 @@ def create_cliente(body: dtos.ClienteDTO):
         validar_cpf(cpf_cliente)
         validar_info(inf_adc)
         validar_nasc(data_nasc)
+        
+        data_nasc_formatada = data_nasc.replace("/", "")
 
         adicionar_informacoes_arquivo_2(
             "arquivos_cadastro/cadastro_cliente.txt",
             cliente_id,
             nome_cliente,
             cpf_cliente,
+            data_nasc_formatada,
             inf_adc,
-            data_nasc,
+            
         )
 
         return body
