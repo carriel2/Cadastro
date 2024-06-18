@@ -61,7 +61,7 @@ def adicionar_informacoes_arquivo_3(
     Adiciona as informações no arquivo TXT.
     """
     with open(nome_arquivo, "a") as arquivo:
-        informacoes = f"{id_armazenado}{descricao_armazenada.ljust(50)}{estoque_armazenado.ljust(10)}{preco_armazenado}"
+        informacoes = f"{id_armazenado}{descricao_armazenada.ljust(50)}{estoque_armazenado.ljust(10)}{preco_armazenado.ljust(10)}"
         arquivo.write(f"{informacoes}\n")
 
 
@@ -103,8 +103,8 @@ def validar_estoque(qtd_estoque):
     Valida a quantidade de produtos disponível em estoque.
     """
 
-    if qtd_estoque == '0':
-        raise EstoqueInvalido("Estoque não pode ser zero")
+    if qtd_estoque < '0':
+        raise EstoqueInvalido("Estoque não pode ser inferior a 0")
 
     if re.match(r"^[0-9]{1,10}$", qtd_estoque):
         return True

@@ -2,7 +2,14 @@ import os.path
 import re
 import datetime
 
-from exceptions.exceptions import ClienteNaoEncontrado, DataFuturaError, DataInvalida
+from dtos.dtos import PedidoDoProdutoDTO
+from exceptions.exceptions import (
+    ClienteNaoEncontrado,
+    DataFuturaError,
+    DataInvalida,
+    EstoqueInsuficiente,
+    ProdutoNaoEncontrado,
+)
 
 
 def proximo_sequencial(nome_arquivo):
@@ -15,7 +22,7 @@ def proximo_sequencial(nome_arquivo):
         try:
             with open(nome_arquivo, "r") as arquivo:
                 linhas = arquivo.readlines()
-                if len(linhas) <= 1:
+                if len(linhas) == 0:
                     proximo = 1
                 else:
                     ultimo_sequencial = int(linhas[-1][:10].strip())
@@ -29,7 +36,7 @@ def proximo_sequencial(nome_arquivo):
     else:
         try:
             with open(nome_arquivo, "w") as arquivo:
-                arquivo.write("CADASTRO PEDIDO\n0000000001\n")
+                arquivo.write("0000000001\n")
             return "0000000001"
 
         except Exception as e:
@@ -52,20 +59,20 @@ def verificar_arquivo(nome_arquivo):
 
 
 def adicionar_informacoes_arquivo(
-    nome_arquivo, id_pedido, cliente_id, pedido_data, status
+    nome_arquivo, id_pedido, cliente_id, pedido_data, status,total_pedido
 ):
     """
     Adiciona as informações no arquivo TXT.
     STATUS - POSIÇÃO 41 - 50
     """
 
-    status = "SEPARACAO"
     with open(nome_arquivo, "a") as arquivo:
+        status_pedido = status
         pedido_data_sem_barras = pedido_data.replace("/", "")
         id_pedido_formatado = id_pedido.zfill(10)
         cliente_id_formatado = cliente_id.zfill(10)
         pedido_data_formatada = pedido_data_sem_barras
-        informacoes = f"{id_pedido_formatado}{cliente_id_formatado}{pedido_data_formatada}{status}"
+        informacoes = f"{id_pedido_formatado}{cliente_id_formatado}{pedido_data_formatada}{status_pedido}{total_pedido}"
         arquivo.write(f"{informacoes}\n")
 
 
@@ -78,7 +85,7 @@ def cadastro_pedido_txt():
     verificar_arquivo("cadastro_pedido.txt")
 
     cliente_id = id_cliente()
-    pedido_data = data_pedido()
+    pedido_data = validar_data_pedido()
     status = "SEPARACAO"
 
     id_pedido = proximo_sequencial("arquivos_cadastro/cadastro_pedido.txt")
@@ -113,6 +120,32 @@ def validar_cliente_id(id_cliente):
     return False
 
 
+def validar_id_produto(produto: PedidoDoProdutoDTO):
+    """
+    Confere se o produto está cadastrado
+    """
+    with open("arquivos_cadastro/cadastro_produto.txt", "r") as arquivo:
+        for linha in arquivo:
+            id_produto = produto.produto_id.zfill(10)
+            quantidade_itens_pedido = produto.quantidade_pedido
+            id_produto_txt = linha[:10].strip()
+            quantidade_estoque_txt = linha[60:70].strip()
+            descricao_item_pedido = linha[10:60].strip()
+            
+            if id_produto_txt == id_produto:
+                if quantidade_itens_pedido > int(quantidade_estoque_txt):
+                    raise EstoqueInsuficiente(
+                        f"A quantidade de {descricao_item_pedido} no seu pedido é superior ao estoque"
+                    )
+                retorno = {
+                    "qtde_compra": quantidade_itens_pedido,
+                    "qtde_estoque": quantidade_estoque_txt,
+                }
+                return retorno
+
+        raise ProdutoNaoEncontrado("Produto não Encontrado")
+
+
 def validar_data_pedido(data_pedido):
     """
     Confere se a data do pedido é uma data válida (dd/mm/aaaa).
@@ -144,7 +177,9 @@ def id_cliente(id):
     Realiza a confirmação se o id do cliente já está cadastrado ou não no TXT. POSIÇÃO 11 - 20
     """
     if not id:
-        id_cliente = input("Insira o ID do cliente registrado (10 caracteres): ").zfill(10)
+        id_cliente = input("Insira o ID do cliente registrado (10 caracteres): ").zfill(
+            10
+        )
 
     else:
         id_cliente = id.zfill(10)
@@ -152,23 +187,27 @@ def id_cliente(id):
         print("Cliente confirmado!")
         return id_cliente
     else:
-        raise ClienteNaoEncontrado("Cliente não encontrado, certifique-se de cadastrá-lo!")
-        
-
-def data_pedido():
-    """
-    Realiza o cadastro da data do pedido baseado no DateTime. - POSIÇÃO 21 - 30
-    """
-    while True:
-        data_pedido = input(
-            "Insira a data de cadastro do pedido (dd/mm/aaaa) e no máximo 3 dias à frente): "
+        raise ClienteNaoEncontrado(
+            "Cliente não encontrado, certifique-se de cadastrá-lo!"
         )
 
-        if validar_data_pedido(data_pedido):
-            print("Cadastro da data realizado!")
-            return data_pedido
-        else:
-            print("Data inválida, certifique-se dela atender a todas as condições!")
+
+def id_produto(id):
+    """
+    Realiza a confirmação se o id do produto já está cadastrado ou não no TXT
+    """
+    if not id:
+        id_produto = input("Insira o ID do produto já cadastrado ")
+
+    else:
+        id_produto = id.zfill(10)
+    if validar_id_produto(id_produto):
+        print("Produto Confirmado!")
+        return id_produto
+    else:
+        raise ProdutoNaoEncontrado(
+            "Produto não encontrado, certifique-se de cadastrá-lo"
+        )
 
 
 cadastro_pedido_txt

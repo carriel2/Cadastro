@@ -96,10 +96,20 @@ class ProdutoException(Exception):
     Excecao pai para as excecoes de produto
     """
 
+class ProdutoNaoEncontrado(ProdutoException):
+    """
+    Excecao para quando o produto nao for encontrado no txt
+    """
+
 
 class EstoqueInvalido(ProdutoException):
     """
     Excecao para quando o formato do estoque for inválido
+    """
+
+class EstoqueInsuficiente(ProdutoException):
+    """
+    Excecao para quando a quantidade do pedido for > que a quantidade em estoque
     """
 
 
@@ -118,4 +128,9 @@ class PrecoZeroError(ProdutoException):
 class DescricaoInvalida(ProdutoException):
     """
     Excecao para quando a descricao inserida for invalida
+    """
+    
+class ProdutoNaoEncontrado(ProdutoException):
+    """
+    Excecao para quando o produto nao for encontrado
     """
