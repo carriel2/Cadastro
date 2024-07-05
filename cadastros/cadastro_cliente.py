@@ -1,4 +1,3 @@
-import os.path
 import re
 
 from exceptions.exceptions import (
@@ -9,63 +8,9 @@ from exceptions.exceptions import (
     FormatoInfo,
     MesInvalido,
     NomeInvalido,
-    TamanhoCPF,
+    TamanhoCPF, CPFException, CaracterInvalidoCPF,
 )
 from fastapi import HTTPException, status
-
-
-def verificar_arquivo(nome_arquivo):
-    """
-    Verifica se o arquivo existe e escreve o cabeçalho se necessário.
-    """
-    diretorio = "arquivos_cadastro"
-    if not os.path.exists(diretorio):
-        os.makedirs(diretorio)
-
-    caminho_arquivo = os.path.join(diretorio, nome_arquivo)
-    if not os.path.isfile(caminho_arquivo):
-        with open(caminho_arquivo, "w") as arquivo:
-            arquivo.write("CADASTRO CLIENTE\n")
-
-
-def adicionar_informacoes_arquivo_2(
-    nome_arquivo, id_cliente, nome_cliente, cpf_cliente, data_nasc, infos_adc
-):
-    """
-    Adiciona as informações ao arquivo.
-    """
-    with open(nome_arquivo, "a") as arquivo:
-        id_formatado = id_cliente.zfill(10)
-        nome_formatado = nome_cliente.ljust(40)
-        data_formatada = data_nasc.replace("/", "")
-        informacoes = (
-            f"{id_formatado}{nome_formatado}{cpf_cliente}{data_formatada}{infos_adc}"
-        )
-        arquivo.write(f"{informacoes}\n")
-
-
-def cadastro_cliente_txt():
-    """
-    Mostra no terminal que as informações foram cadastradas.
-    Repassa para o arquivo de adicionar informações, o caminho e quais as variaveis que devem ser armazenadas
-    na ordem correta.
-    """
-    verificar_arquivo("cadastro_cliente.txt")
-
-    id_cliente = proximo_id()
-    nome_cliente = validar_nome()
-    cpf_cliente = validar_cpf()
-    data_nasc = validar_nasc()
-    infos_adc = validar_info()
-
-    adicionar_informacoes_arquivo_2(
-        "arquivos_cadastro/cadastro_cliente.txt",
-        id_cliente,
-        nome_cliente,
-        cpf_cliente,
-        data_nasc,
-        infos_adc,
-    )
 
 
 def validar_nome(nome_cliente: str) -> bool:
@@ -78,26 +23,31 @@ def validar_nome(nome_cliente: str) -> bool:
     Retorna:
         - True se o nome for válido, False caso contrário.
     """
-    if len(nome_cliente) > 40 or " " in nome_cliente:
+    if not re.fullmatch(r'^[A-Za-zÀ-ÖØ-öø-ÿ]+(?: [A-Za-zÀ-ÖØ-öø-ÿ]+)*$', nome_cliente):
         raise NomeInvalido(
-            "O nome inserido excede o limite de caracteres ou contém espaços "
+            "O nome inserido excede o limite de caracteres ou contém caracteres inválidos "
         )
     return True
 
 
-def validar_cpf(cpf_cliente):
+def validar_cpf(cpf_cliente, cursor):
     """
-    Valida o CPF do cliente e verifica se já existe no arquivo.
+    Valida o CPF do cliente e verifica se já existe no banco de dados.
     """
-    cpf_cliente = re.sub(r"[^0-9X]", "", cpf_cliente)
+
+    cpf_cliente = re.sub(r"[^0-9]", "", cpf_cliente)
 
     if len(cpf_cliente) != 11:
-        raise TamanhoCPF("Tamanho do CPF excede os limites")
+        raise TamanhoCPF("Tamanho do CPF inválido  ")
+    elif cpf_cliente.count("X") > 1 or (cpf_cliente.count("X") == 1 and cpf_cliente[-1] != "X"):
+        raise CaracterInvalidoCPF("CPF deve conter apenas números ou 'X' na última posição")
 
-    with open("arquivos_cadastro/cadastro_cliente.txt", "r") as arquivo:
-        for linha in arquivo:
-            if cpf_cliente in linha:
-                raise CPFJaCadastrado("CPF Inserido já cadastrado")
+    query = "SELECT 1 FROM cliente WHERE cpf = %s"
+    cursor.execute(query, (cpf_cliente,))
+
+    if cursor.fetchone():
+        raise CPFException("CPF já cadastrado")
+
     return True
 
 
@@ -143,27 +93,9 @@ def validar_info(outras_infos):
     """
     Valida as informações adicionais do cliente.
     """
-    if len(outras_infos) > 30 or " " in outras_infos:
+    if len(outras_infos) > 30:
         raise FormatoInfo(
-            "Informações adicionais não pode conter espaços ou mais do que 30 caracteres"
+            "Informações adicionais não pode conter mais do que 30 caracteres"
         )
 
     return True
-
-
-def proximo_id():
-    """
-    Obtém o próximo ID de cliente disponível.
-    """
-    with open("arquivos_cadastro/cadastro_cliente.txt", "r") as arquivo:
-        linhas = arquivo.readlines()
-        if len(linhas) <= 1:
-            return "0000000001"
-
-        ultimo_id = linhas[-1].split()[0]
-        ultimo_id_digitos = "".join(filter(str.isdigit, ultimo_id))
-        proximo = int(ultimo_id_digitos) + 1
-        return str(proximo).zfill(10)
-
-
-cadastro_cliente_txt

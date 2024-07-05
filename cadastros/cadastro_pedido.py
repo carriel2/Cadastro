@@ -2,6 +2,7 @@ import os.path
 import re
 import datetime
 
+from db_connection import get_connection
 from dtos.dtos import PedidoDoProdutoDTO
 from exceptions.exceptions import (
     ClienteNaoEncontrado,
@@ -59,7 +60,7 @@ def verificar_arquivo(nome_arquivo):
 
 
 def adicionar_informacoes_arquivo(
-    nome_arquivo, id_pedido, cliente_id, pedido_data, status,total_pedido
+        nome_arquivo, id_pedido, cliente_id, pedido_data, status, total_pedido
 ):
     """
     Adiciona as informações no arquivo TXT.
@@ -76,36 +77,6 @@ def adicionar_informacoes_arquivo(
         arquivo.write(f"{informacoes}\n")
 
 
-def cadastro_pedido_txt():
-    """
-    Mostra no terminal que as informações foram cadastradas.
-    Repassa para o arquivo de adicionar informações, o caminho e quais as variáveis que devem ser armazenadas
-    na ordem correta.
-    """
-    verificar_arquivo("cadastro_pedido.txt")
-
-    cliente_id = id_cliente()
-    pedido_data = validar_data_pedido()
-    status = "SEPARACAO"
-
-    id_pedido = proximo_sequencial("arquivos_cadastro/cadastro_pedido.txt")
-    if id_pedido is not None:
-        adicionar_informacoes_arquivo(
-            "arquivos_cadastro/cadastro_pedido.txt",
-            id_pedido,
-            cliente_id,
-            pedido_data,
-            status,
-        )
-        print(
-            f"ID Pedido: {id_pedido} ID Cliente: {cliente_id} Data do Pedido: {pedido_data} Status: {status}"
-        )
-    else:
-        print(
-            "Falha ao gerar o ID do pedido. Por favor, verifique o arquivo e tente novamente."
-        )
-
-
 def validar_cliente_id(id_cliente):
     """
     Confere se o cliente está cadastrado
@@ -120,33 +91,7 @@ def validar_cliente_id(id_cliente):
     return False
 
 
-def validar_id_produto(produto: PedidoDoProdutoDTO):
-    """
-    Confere se o produto está cadastrado
-    """
-    with open("arquivos_cadastro/cadastro_produto.txt", "r") as arquivo:
-        for linha in arquivo:
-            id_produto = produto.produto_id.zfill(10)
-            quantidade_itens_pedido = produto.quantidade_pedido
-            id_produto_txt = linha[:10].strip()
-            quantidade_estoque_txt = linha[60:70].strip()
-            descricao_item_pedido = linha[10:60].strip()
-            
-            if id_produto_txt == id_produto:
-                if quantidade_itens_pedido > int(quantidade_estoque_txt):
-                    raise EstoqueInsuficiente(
-                        f"A quantidade de {descricao_item_pedido} no seu pedido é superior ao estoque"
-                    )
-                retorno = {
-                    "qtde_compra": quantidade_itens_pedido,
-                    "qtde_estoque": quantidade_estoque_txt,
-                }
-                return retorno
-
-        raise ProdutoNaoEncontrado("Produto não Encontrado")
-
-
-def validar_data_pedido(data_pedido):
+def validar_data_pedido(data_pedido: object) -> object:
     """
     Confere se a data do pedido é uma data válida (dd/mm/aaaa).
     """
@@ -156,10 +101,10 @@ def validar_data_pedido(data_pedido):
     dia, mes, ano = map(int, data_pedido.split("/"))
 
     if not (
-        1 <= dia <= 31
-        and 1 <= mes <= 12
-        and ano >= datetime.datetime.now().year
-        and mes >= datetime.datetime.now().month
+            1 <= dia <= 31
+            and 1 <= mes <= 12
+            and ano >= datetime.datetime.now().year
+            and mes >= datetime.datetime.now().month
     ):
         raise DataInvalida("Data Inexistente")
 
@@ -170,44 +115,3 @@ def validar_data_pedido(data_pedido):
         return True
     else:
         raise DataFuturaError("Data Ultrapassa o limite de 3 dias")
-
-
-def id_cliente(id):
-    """
-    Realiza a confirmação se o id do cliente já está cadastrado ou não no TXT. POSIÇÃO 11 - 20
-    """
-    if not id:
-        id_cliente = input("Insira o ID do cliente registrado (10 caracteres): ").zfill(
-            10
-        )
-
-    else:
-        id_cliente = id.zfill(10)
-    if validar_cliente_id(id_cliente):
-        print("Cliente confirmado!")
-        return id_cliente
-    else:
-        raise ClienteNaoEncontrado(
-            "Cliente não encontrado, certifique-se de cadastrá-lo!"
-        )
-
-
-def id_produto(id):
-    """
-    Realiza a confirmação se o id do produto já está cadastrado ou não no TXT
-    """
-    if not id:
-        id_produto = input("Insira o ID do produto já cadastrado ")
-
-    else:
-        id_produto = id.zfill(10)
-    if validar_id_produto(id_produto):
-        print("Produto Confirmado!")
-        return id_produto
-    else:
-        raise ProdutoNaoEncontrado(
-            "Produto não encontrado, certifique-se de cadastrá-lo"
-        )
-
-
-cadastro_pedido_txt

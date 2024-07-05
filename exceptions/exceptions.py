@@ -61,6 +61,12 @@ class TamanhoCPF(CPFException):
     """
 
 
+class CaracterInvalidoCPF(CPFException):
+    """
+    Excecao para quando caracteres invalidos forem inseridos no CPF
+    """
+
+
 # --------------------------------------------------------------------------------------------- #
 
 
@@ -96,6 +102,7 @@ class ProdutoException(Exception):
     Excecao pai para as excecoes de produto
     """
 
+
 class ProdutoNaoEncontrado(ProdutoException):
     """
     Excecao para quando o produto nao for encontrado no txt
@@ -106,6 +113,7 @@ class EstoqueInvalido(ProdutoException):
     """
     Excecao para quando o formato do estoque for inválido
     """
+
 
 class EstoqueInsuficiente(ProdutoException):
     """
@@ -129,8 +137,23 @@ class DescricaoInvalida(ProdutoException):
     """
     Excecao para quando a descricao inserida for invalida
     """
-    
+
+
 class ProdutoNaoEncontrado(ProdutoException):
     """
     Excecao para quando o produto nao for encontrado
+    """
+
+
+# --------------------------------------------------------------------------------------------- #
+
+class PedidoException(Exception):
+    """
+    Classe pai para excecoes do Pedido
+    """
+
+
+class PedidoNaoEncontrado(PedidoException):
+    """
+    Excecao para quando o Pedido não for encontrado no banco de dados durante o SELECT
     """

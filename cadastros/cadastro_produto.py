@@ -51,11 +51,11 @@ def verificar_arquivo(nome_arquivo):
 
 
 def adicionar_informacoes_arquivo_3(
-    nome_arquivo,
-    id_armazenado,
-    descricao_armazenada,
-    estoque_armazenado,
-    preco_armazenado,
+        nome_arquivo,
+        id_armazenado,
+        descricao_armazenada,
+        estoque_armazenado,
+        preco_armazenado,
 ):
     """
     Adiciona as informações no arquivo TXT.
@@ -117,16 +117,12 @@ def validar_preco(preco):
     Valida o preço do produto.
     """
     try:
-        preco_float = float(preco.replace(",", "."))
-        if preco_float > 0 and len(preco) <= 30:
+        if preco > 0 and len(preco) <= 30:
             return preco
         else:
-            if preco_float <= 1:
+            if preco <= 1:
                 raise PrecoZeroError("O valor deve ser maior do que 0")
             else:
                 raise PrecoError("O preco inserido não é válido")
     except ValueError:
         raise PrecoError("Preço Inválido")
-
-
-cadastro_produto_txt
