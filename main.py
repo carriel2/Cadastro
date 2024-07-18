@@ -2,31 +2,22 @@ from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 import uvicorn
-from db_connection import get_connection
-from decouple import config
 
-from cadastros.cadastro_cliente import (
-    validar_cpf,
-    validar_info,
-    validar_nasc,
-    validar_nome,
+from db_connection import get_connection
+
+from controller import (
+    calcular_total_pedido,
+    calcular_novo_estoque,
+    Validacoes, calcula_total_pedido,
+
 )
-from cadastros.cadastro_produto import (
-    adicionar_informacoes_arquivo_3,
-    proximo_sequencial_2,
-    validar_estoque,
-    validar_preco, validar_produto,
-)
-from cadastros.cadastro_pedido import (
-    validar_data_pedido,
-    verificar_arquivo,
-)
+
 from exceptions.exceptions import (
     CPFException,
     ClienteException,
     DataException,
     ProdutoException,
-    PedidoException, EstoqueInsuficiente, ProdutoNaoEncontrado,
+    PedidoException,
 )
 import dtos.dtos as dtos
 
@@ -60,34 +51,45 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.post("/cadastrar/cliente")
 def create_cliente(body: dtos.ClienteDTO):
     """
-    Cadastra um novo cliente.
+    Cadastra um novo cliente no Sistema e banco de dados.
 
     Parâmetros:
-        body: Objeto PedidoDTO contendo as informações do cliente.
+        -Deve receber todas as informações necessárias para cadastrar um novo cliente.
+            - Nome do Cliente(nome_cliente) - Informado via Body.
+            - CPF do Cliente(cpf_clienet) - Informado via Body.
+            - Data de Nascimento do Cliente(data_nasc) - Informado via Body.
+            - Informações Adicionais(inf_adc) - Informado via Body.
 
-    Retorna:
-        - Objeto ClienteDTO do cliente cadastrado.1
+        Execução:
+            - Deve-se validar o nome do cliente.
+            - Deve-se validar a formatação do CPF e se o mesmo é válido.
+            - Deve-se validar a data de nascimento do cliente.
+            - Deve Inserir todas as informações passadas via Body na tabela de cliente.
 
-    Lança:
-        - HTTPException: Se ocorrer um erro durante o cadastro do cliente.
+        Retorna:
+            - Caso tudo ocorra corretamente, deve retornar uma mensagem de sucesso.
+
+        Exceções:
+            - CPFException: Exceção Pai para qualquer exceção relacionada ao CPF.
+            - DataException: Exceção Pai para qualquer exceção relacionada a data de nascimento.
+            - ClienteException: Exceção Pai para qualquer exceção relacionada ao cliente.
     """
+    conn = get_connection()
+    cursor = conn.cursor()
 
     try:
-        conn = get_connection()
-        cursor = conn.cursor()
 
         nome_cliente = body.nome
         cpf_cliente = body.cpf
         data_nasc = body.data_nasc
         inf_adc = body.inf_adicionais
 
-        validar_nome(nome_cliente)
-        validar_cpf(cpf_cliente, cursor)
+        Validacoes.nome(nome_cliente)
+        Validacoes.cpf(cpf_cliente, cursor)
+        Validacoes.nascimento(data_nasc)
 
         if inf_adc is not None:
-            validar_info(inf_adc)
-
-        validar_nasc(data_nasc)
+            Validacoes.info(inf_adc)
 
         cursor.execute("""
             INSERT INTO Cliente (nome, cpf, data_nasc, info_adicional)
@@ -95,170 +97,262 @@ def create_cliente(body: dtos.ClienteDTO):
        """, (nome_cliente, cpf_cliente, data_nasc, inf_adc))
 
         conn.commit()
-        cursor.close()
-        conn.close()
-        url = f"{config('URL_ENV')}{cpf_cliente}"
-        return {"url": url}
+        return "Sucesso"
 
     except (CPFException, DataException, ClienteException) as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        conn.rollback()
+        raise (HTTPException
+               (status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)))
+
     except Exception as e:
+        conn.rollback()
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-
-@app.get("/consulta/cliente")
-def get_clientes():
-    try:
-        conn = get_connection()
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT * FROM Cliente
-            """)
-            clientes = cursor.fetchall()
-
-            clientes_formatados = [
-                {
-                    'id': cliente[0],
-                    'nome': cliente[1],
-                    'data_nasc': cliente[2],
-                    'info_adicional': cliente[3],
-                    'cpf': cliente[4],
-                }
-                for cliente in clientes
-            ]
-
-            return clientes_formatados
-
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
-
-@app.get("/consulta/cliente/{cpf}")
-def get_clientes_cpf(cpf: str):
-    """
-    Consulta um cliente específico baseado no CPF inserido na url
-
-    Retorna:
-        - As informações específicas do cliente buscado
-    """
-
-    try:
-        conn = get_connection()
-        with conn.cursor() as cursor:
-            cursor.execute("SELECT * FROM Cliente WHERE cpf = %s", (cpf,))
-            cliente_info = cursor.fetchone()
-
-            if not cliente_info:
-                raise ClienteException("Cliente não encontrado")
-
-            cliente_formatado = {
-                'id': cliente_info[0],
-                'nome': cliente_info[1],
-                'data_nasc': cliente_info[2],
-                'info_adicional': cliente_info[3],
-                'cpf': cliente_info[4],
-            }
-
-            return cliente_formatado
-
-    except ClienteException as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        )
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        )
-
-
-@app.delete("/delete/cliente/{cpf}")
-def delete_cliente(cpf: str):
-    """
-    Deleta um cliente pelo CPF inserido na url.
-
-    Parâmetros:
-        - cpf: CPF do cliente a ser deletado.
-
-    Retorna:
-        - Uma mensagem de sucesso.
-
-    Exceções:
-        - HTTPException: Se ocorrer um erro durante a deleção do cliente.
-    """
-    try:
-        conn = get_connection()
-        with conn.cursor() as cursor:
-            cursor.execute("DELETE FROM Cliente WHERE cpf = %s", (cpf,))
-            if cursor.rowcount == 0:
-                raise ClienteException(f"CPF {cpf} não encontrado")
-
-            conn.commit()
-            return {"details": "Sucesso",
-                    "CPF": cpf
-                    }
-
-    except ClienteException as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-        )
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        ) from e
 
     finally:
         conn.close()
+        cursor.close()
 
 
-@app.post("/cadastrar/pedido")
-def create_pedido(body: dtos.PedidoDTO):
+@app.get("/consulta/clientes")
+def consulta_clientes():
     """
-    Cadastra um novo pedido.
+    Consulta todos os clientes que estiverem cadastrados na base de dados
 
     Parâmetros:
-        body: Objeto PedidoDTO contendo as informações do pedido.
+        - Não possui nenhum, pois se trata de uma consulta gênérica e geral
+
+    Execução:
+        - Executa um SELECT na tabela de clientes, retornando todos eles.
+        - Formata os dados dos clientes para se ajustar conforme o retorno
 
     Retorna:
-        - Objeto PedidoDTO do pedido cadastrado.
+        - As informações (ID, Nome, Data de Nascimento, Informações Adicionais e CPF) todas elas formatadas e organizdas.
 
-    Exceções:
-        - HTTPException: Se ocorrer um erro durante o cadastro do pedido.
+    Exceção:
+        - ClienteException: Exceção Pai para qualquer exceção relacionada ao cliente.
+        - Exception: Exceção genérica somente para acompanhamento.
     """
     conn = get_connection()
     cursor = conn.cursor()
 
     try:
 
+        cursor.execute("""
+                SELECT * FROM Cliente
+            """)
+        clientes = cursor.fetchall()
+        if not clientes:
+            raise ClienteException(
+                "Nenhum cliente encontrado na base de dados"
+            )
+
+        clientes_formatados = [
+            {
+                'id': cliente[0],
+                'nome': cliente[1],
+                'data_nasc': cliente[2],
+                'info_adicional': cliente[3],
+                'cpf': cliente[4],
+            }
+            for cliente in clientes
+        ]
+
+        return clientes_formatados
+
+    except ClienteException as e:
+        conn.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+    finally:
+        conn.close()
+        cursor.close()
+
+
+@app.get("/consulta/cliente/{cpf}")
+def consulta_cliente_cpf(cpf: str):
+    """
+    Consulta um cliente específico baseado no CPF inserido na URL
+
+    Parâmetros::
+        - Deve receber o CPF do cliente a ser buscado pela URL
+
+    Execução:
+        - Excecuta um SELECT com WHERE na tabela de clientes, buscando por CPF.
+        - Formata as informações do cliente (ID, Nome, Data de Nascimento, Informações Adicionais e CPF) para retornar na consulta.
+
+    Exceções:
+        - ClienteException: Exceção Pai para qualquer exceção relacionada ao cliente.
+        - Exception: Exceção genérica somente para acompanhamento.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+
+        cursor.execute("SELECT * FROM Cliente WHERE cpf = %s", (cpf,))
+        cliente_info = cursor.fetchone()
+
+        if not cliente_info:
+            raise ClienteException("Cliente não encontrado")
+
+        cliente_formatado = {
+            'id': cliente_info[0],
+            'nome': cliente_info[1],
+            'data_nasc': cliente_info[2],
+            'info_adicional': cliente_info[3],
+            'cpf': cliente_info[4],
+        }
+
+        return cliente_formatado
+
+    except ClienteException as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
+        )
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+    finally:
+        conn.close()
+        cursor.close()
+
+
+@app.delete("/deleta/cliente/{cpf}")
+def deleta_cliente(cpf: str):
+    """
+    Deleta um cliente pelo CPF inserido na url.
+
+    Parâmetros:
+        - Deve receber o CPF do cliente via URL, para realizar a identificação e exclusão do mesmo
+            - CPF do cliente que deseja deletar.
+
+    Execução:
+        - Deve buscar na tabela de cliente pelo cpf informado na URL, e caso encontrado realizar a exclusão dos dados do cliente.
+
+    Retorna:
+        - Caso tudo ocorra corretamente, deve retornar uma mensagem de sucesso
+
+    Exceções:
+        - CPFException: Caso o CPF inserido do cliente não seja encontrado
+        - ClienteException: Exception para qualquer erro relacionado ao cliente
+        - Exception: Exceção genérica somente para acompanhamento
+
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+
+        cursor.execute("DELETE FROM Cliente WHERE cpf = %s", (cpf,))
+        if cursor.rowcount == 0:
+            raise CPFException(f"CPF {cpf} não encontrado")
+
+        conn.commit()
+        return {"details": "Sucesso",
+                "CPF": cpf
+                }
+
+    except ClienteException as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
+        )
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        ) from e
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.post("/cadastrar/pedido")
+def cadastrar_pedido(body: dtos.PedidoDTO):
+    """
+    Realiza o cadastro de um novo pedido.
+
+    Parâmetros:
+        - Deve receber todas as informações para criação de um novo pedido:
+            - ID do Cliente (Informado via Body)
+            - Status do pedido (Informado via Body)
+            - Produtos (Informado via Body -  Lista contendo ID do Produto a ser comprado e quantidade comprada)
+
+    Execução:
+        - Deve validar o ID do cliente.
+        - Deve validar a data do pedido.
+        - Deve validar todos os produtos um a um
+            - Validar ID do produto para saber se o mesmo está cadastrado na tabela de estoque
+            - Validar a quantidade comprada, comparando com o estoque para saber se a quantidade é válida,
+            - Atualizar a quantidade disponível em estoque para cada produto dentro do loop for.
+            - Realizar o cálculo parcial e total do pedido.
+            - Inserir as informações do pedido na tabela referente.
+                - id_cliente
+                - data_pedido
+                - valor_total
+                - status
+                - total_itens
+        - Deve inserir os itens do pedido na tabela itens_pedido
+            - id_produto
+            - id_pedido
+            - qtd_comprada
+
+    Retorna:
+        - Caso tudo ocorra corretamente, deve retornar uma mensagem de sucesso
+
+    Exceções:
+        - ClienteException: Exceção relacionada a quaisquer erros que ocorram com o cliente.
+        - DataException: Esceção relacionada a quaisquer erros que ocorram com a data.
+        - ProdutoExceptiom: Exceção relacionada a quaisquer erros que ocorram com o produto.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
         id_cliente = body.id_cliente
         status_pedido = body.status
         data = body.data
         produtos = body.produtos
         valor_total_pedido = 0
 
-        funcoes_auxiliares = FuncoesAuxiliares()
-        cliente_existe = funcoes_auxiliares.validar_id_cliente(id_cli=id_cliente, cursor=cursor)
+        cliente_existe = Validacoes.id_cliente(id_cli=id_cliente, cursor=cursor)
 
-        validar_data_pedido(data)
+        Validacoes.data_pedido(data)
 
         if not cliente_existe:
             raise ClienteException("ID do cliente não encontrado no cadastro")
 
+        produtos_agrupados = {}
         for produto in produtos:
-            infos_retorno = funcoes_auxiliares.validar_id_produto(produto, cursor=cursor)
+            if produto.produto_id in produtos_agrupados:
+                produtos_agrupados[produto.produto_id] += produto.quantidade_pedido
+            else:
+                produtos_agrupados[produto.produto_id] = produto.quantidade_pedido
+
+        for produto_id, quantidade_pedido in produtos_agrupados.items():
+            infos_retorno = Validacoes.id_produto_e_estoque(
+                dtos.PedidoDoProdutoDTO(produto_id=produto_id, quantidade_pedido=quantidade_pedido), cursor=cursor)
 
             estoque = int(infos_retorno["qtde_estoque"])
-            produtos_na_compra = int(infos_retorno["qtde_compra"])
             preco_unitario = float(infos_retorno["preco_unitario"])
-            nome_produto = infos_retorno["nome_produto"]
 
-            novoestoque = FuncoesAuxiliares.calcular_novo_estoque(
-                qtd_estoque=estoque, qtd_compra=produtos_na_compra
+            novoestoque = calcular_novo_estoque(
+                qtd_estoque=estoque, qtd_compra=quantidade_pedido
             )
 
-            total_parcial = FuncoesAuxiliares.calcular_total_pedido(
-                qtd_compra=produtos_na_compra, preco_unitario=preco_unitario
+            total_parcial = calcular_total_pedido(
+                qtd_compra=quantidade_pedido, preco_unitario=preco_unitario
             )
 
             valor_total_pedido += total_parcial
@@ -267,42 +361,39 @@ def create_pedido(body: dtos.PedidoDTO):
                UPDATE public.estoque
                SET qtd_estoque=%s
                WHERE id = %s;
-            """, (novoestoque, produto.produto_id))
+            """, (novoestoque, produto_id))
 
         cursor.execute("""
             INSERT INTO Pedido (id_cliente, data_pedido, valor_total, status, total_itens)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id;
-        """, (id_cliente, data, valor_total_pedido, status_pedido, len(produtos)))
+        """, (id_cliente, data, valor_total_pedido, status_pedido, len(produtos_agrupados)))
 
-        id_gerado = cursor.fetchone()
+        id_gerado = cursor.fetchone()[0]
 
-        for produto in produtos:
+        for produto_id, quantidade_pedido in produtos_agrupados.items():
             cursor.execute("""
                 SELECT qtd_comprada FROM itens_pedido
                 WHERE id_produto = %s AND id_pedido = %s
-            """, (produto.produto_id, id_gerado))
+            """, (produto_id, id_gerado))
 
             item_existente = cursor.fetchone()
 
             if item_existente:
-                nova_qtd_cpmprada = item_existente[0] + produto.quantidade_pedido
+                nova_qtd_comprada = item_existente[0] + quantidade_pedido
                 cursor.execute("""
                     UPDATE itens_pedido 
                     SET qtd_comprada = %s
                     WHERE id_produto = %s AND id_pedido = %s
-                """, (nova_qtd_cpmprada, produto.produto_id, id_gerado))
-
+                """, (nova_qtd_comprada, produto_id, id_gerado))
             else:
                 cursor.execute("""
                     INSERT INTO itens_pedido (id_produto, id_pedido, qtd_comprada)
                     VALUES (%s, %s, %s)
-                
-                """, (produto.produto_id, id_gerado, produto.quantidade_pedido))
-                FuncoesAuxiliares.adiciona_itens_pedido(id_pedido=id_gerado, produtos=produtos, cursor=cursor)
+                """, (produto_id, id_gerado, quantidade_pedido))
 
-                conn.commit()
-        return body
+        conn.commit()
+        return "Sucesso"
 
     except ClienteException as e:
         conn.rollback()
@@ -322,208 +413,113 @@ def create_pedido(body: dtos.PedidoDTO):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
     finally:
-        conn.close()
-
-
-@app.get("/consulta/pedido")
-def get_pedidos():
-    """
-    Consulta todos os pedidos cadastrados.
-
-    Retorna:
-        - Uma lista de pedidos formatados.
-    """
-    try:
-        conn = get_connection()
-        with conn.cursor() as cursor:
-            cursor.execute("""
-                SELECT * FROM pedido
-                ORDER BY id asc
-            """)
-            pedidos = cursor.fetchall()
-
-            pedido_formatado = [
-                {
-                    "id": pedido[0],
-                    "id_cliente": pedido[1],
-                    "data_pedido": pedido[2],
-                    "valor_total": pedido[3],
-                    "status_pedido": pedido[4],
-                    "total_itens": pedido[5]
-
-                }
-                for pedido in pedidos
-            ]
-
-            cursor.close()
-            return pedido_formatado
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        )
-
-
-@app.post("/adicionar/itenspedido/")
-def adc_itens_pedido(body: dtos.ItensPedidoDTO):
-    """
-    Adiciona itens a um pedido já existente na tabela itens_pedido
-
-    Parâmetros:
-        - body: Informações do item que deseja adicionar ao pedido existente
-
-    Retorna:
-        - Informações do item adicionado no pedido.
-
-    Exceções:
-        - Exceções genéricas e específicas dentro de cada função chamada
-    """
-
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    qtd_comprada = body.quantidade_comprada
-    id_produto = body.id_produto
-    id_pedido = body.id_pedido
-
-    pedido_encontrado = FuncoesAuxiliares.validar_id_pedido(id_pedido=id_pedido, cursor=cursor)
-
-    if not pedido_encontrado:
-        raise PedidoException(
-            "Pedido não encontrado na base de dados, certifique-se de cadastrá-lo"
-        )
-
-    retorno = FuncoesAuxiliares.validar_id_produto(
-        produto=dtos.PedidoDoProdutoDTO(produto_id=id_produto, quantidade_pedido=qtd_comprada), cursor=cursor)
-
-    try:
-        cursor.execute("""
-        SELECT qtd_comprada from itens_pedido
-        WHERE id_produto = %s AND id_pedido = %s
-        """, (id_produto, id_pedido))
-
-        item_existente = cursor.fetchone()
-
-        if item_existente:
-
-            nova_qtd_comprada = item_existente[0] + qtd_comprada
-            cursor.execute("""
-                UPDATE itens_pedido 
-                SET qtd_comprada = %s 
-                WHERE id_produto = %s AND id_pedido = %s
-                
-            """, (nova_qtd_comprada, id_produto, id_pedido))
-
-        else:
-            cursor.execute("""
-                INSERT into itens_pedido(id_produto, id_pedido, qtd_comprada) 
-                VALUES (%s, %s, %s)
-            """, (id_produto, id_pedido, qtd_comprada))
-
-        valor_total = FuncoesAuxiliares.calcular_total_pedido(qtd_compra=qtd_comprada,
-                                                              preco_unitario=retorno['preco_unitario'])
-
-        FuncoesAuxiliares.update_pedido(id_pedido=id_pedido, valor_total=valor_total, total_itens=1, cursor=cursor)
-
-    except Exception as e:
-        conn.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        )
-    finally:
-        conn.commit()
         cursor.close()
         conn.close()
 
 
-# @app.put("/alterar/pedido/{id}")
-# def update_pedido(id: str, body: dtos.UpdatePedidoDTO):
-#     """
-#     Altera pedido baseado no ID informado na URL
-#
-#     Parâmetros:
-#         - id: ID do pedido que deseja realizar a alteração
-#         - body: Informações do pedido a serem atualizadas
-#
-#     Retorna:
-#         - Informações do pedido atualizadas, de acordo com as novas passadas
-#
-#     Exceções:
-#         - HTTPException caso ocorra algum erro durante a atualização do pedido
-#
-#     """
-#
-#     conn = get_connection()
-#     cursor = conn.cursor()
-#
-#     try:
-#         cursor.execute("SELECT * FROM Pedido WHERE id = %s", (id,))
-#
-#         produto_existente = cursor.fetchone()
-#
-#         id_pedido = produto_existente[0]
-#         id_cliente = produto_existente[1]
-#         data_pedido = produto_existente[2]
-#         valor_total = produto_existente[3]
-#         status_pedido = produto_existente[4]
-#         total_itens_pedido = produto_existente[5]
-#
-#         novo_status_pedido = body.novo_status
-#
-#         novo_id_cliente = body.id_cliente
-#         FuncoesAuxiliares.validar_id_cliente(id_cli=novo_id_cliente, cursor=cursor)
-#
-#         nova_data_pedido = body.nova_datapedido
-#         validar_data_pedido(nova_data_pedido)
-#
-#         if body.
-
-
-# except PedidoException as e:
-#     conn.rollback()
-#     raise HTTPException(
-#         status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
-#     )
-# except Exception as e:
-#     conn.rollback()
-#     raise HTTPException(
-#         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-#     )
-#
-
-@app.delete("/delete/pedido/{id}")
-def delete_pedido(id: str):
+@app.get("/consulta/pedido")
+def consulta_pedidos():
     """
-    Deleta um pedido pelo ID.
+    Consulta todos os pedidos que estiverem cadastrados na base de dados.
 
     Parâmetros:
-        - id: ID do pedido a ser deletado.
+        - Não possui nenhum, pois se trata de uma consulta genérica e geral.
+
+    Execução:
+        - Executa um SELECT na tabela de pedidos, retornando todos eles.
+        - Formata os dados dos pedidos para se ajustar conforme o retorno.
 
     Retorna:
-        - Uma mensagem de sucesso.
+        - As informações (ID, ID do cliente, Data do pedido, Valor total, Status do pedido, Total de itens) todas elas formatadas e organizdas.
+
+    Exceção:
+        - ClienteException: Exceção Pai para qualquer exceção relacionada ao cliente.
+        - Exception: Exceção genérica somente para acompanhamento.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+
+        cursor.execute("""
+                SELECT * FROM pedido
+                ORDER BY id ASC
+            """)
+        pedidos = cursor.fetchall()
+
+        if not pedidos:
+            raise PedidoException(
+                "Nenhum pedido encontrado na base de dados"
+            )
+
+        pedido_formatado = [
+            {
+                "id": pedido[0],
+                "id_cliente": pedido[1],
+                "data_pedido": pedido[2],
+                "valor_total": pedido[3],
+                "status_pedido": pedido[4],
+                "total_itens": pedido[5]
+
+            }
+            for pedido in pedidos
+        ]
+
+        return pedido_formatado
+
+    except PedidoException as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.get("/consulta/pedido/{id_pedido}")
+def consulta_pedido_id(id_pedido: int):
+    """
+    Consulta os pedidos cadastrados pelo id deles informados na URL.
+
+    Parâmetros:
+        - id_pedido: ID do pedido informado via URL, utilizado na busca.
+
+    Execução:
+        - Executa um SELECT na tabela de pedidos, utilizando o id_pedido como parâmetro para buscar,
+        - Formata os dados do pedido ara se ajustar conforme o retorno.
+
+    Retorna:
+        - Caso tudo ocorra corretamente, deve retornar as informações do pedido formatado.
 
     Exceções:
-        - HTTPException: Se ocorrer um erro durante a deleção do pedido.
+        - PedidoException: Quando o id do pedido não for encontrado, será retornado essa exceção.
+        - Exception: Exceção genérica somente para acompanhamento.
     """
+    conn = get_connection()
+    cursor = conn.cursor()
+
     try:
-        conn = get_connection()
-        with conn.cursor() as cursor:
+        cursor.execute("SELECT * FROM pedido WHERE id = %s", (id_pedido,))
+        pedido_encontrado = cursor.fetchone()
 
-            encontrado = cursor.execute(
-                """
-                SELECT * from pedido where id = %s
-                """, (id,))
+        if not pedido_encontrado:
+            raise PedidoException("Pedido não encontrado")
 
-            if not encontrado:
-                raise PedidoException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail='Pedido não encontrado'
-                )
+        pedido_formatado = {
+            'id': pedido_encontrado[0],
+            'id_cliente': pedido_encontrado[1],
+            'data_pedido': pedido_encontrado[2],
+            'valor_total': pedido_encontrado[3],
+            'status': pedido_encontrado[4],
+            'total_itens': pedido_encontrado[5]
+        }
 
-            cursor.execute(
-                """
-                DELETE FROM pedido WHERE id = %s
-                """, (id,))
+        return pedido_formatado
 
     except PedidoException as e:
         raise HTTPException(
@@ -531,137 +527,485 @@ def delete_pedido(id: str):
         )
     except Exception as e:
         raise HTTPException(
-            stauts_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details=str(e)
-        ) from e
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+    finally:
+        cursor.close()
+        conn.close()
 
 
-@app.post("/cadastrar/produto")
-def create_produto(body: dtos.EstoqueDTO):
+@app.post("/inserir/itempedido/{id}")
+def inserir_item_pedido(id: int, body: dtos.AdicionarItemDTO):
     """
-    Cadastra um novo produto.
+    Insere 1 item novo em um pedido já cadastrado.
 
-    Args:
-        body: Objeto EstoqueDTO contendo as informações do produto.
+    Parâmetros:
+        - Deve receber todas as informações para inserir o novo item no pedido
+            - ID do Pedido (Informado via URL)
+            - ID do Produto (Informado via Body)
+            - Quantidade comprada do produto (Informado via Body)
+
+    Execução:
+        - Deve atualizar na tabela de pedido:
+            - O valor total do pedido de acordo com o item novo inserido.
+
+        - Deve atualizar na tabela estoque:
+            - A nova quantidade disponível do estoque de determinado comprado, baseado na quantidade comprada
+
+        - Deve inserir na tabela de itens_pedido:
+            - ID do Produto (Deve ser validado para verificar se existe na tabela de estoque)
+            - Quantidade Comprada (Deve ser validado para verificar se o estoque disponível supre a quantidade comprada)
 
     Retorna:
-        - Objeto EstoqueDTO do produto cadastrado.
+        - Caso tudo ocorra corretamente, deve retornar uma mensagem de "Sucesso"
 
-    Lança:
-        - HTTPException: Se ocorrer um erro durante o cadastro do produto.
+    Exceções:
+        - PedidoException: Exceçao para quando o Pedido não é encontrado no BD
+        - Exception: Exceção genérica somente para acompanhamento.
     """
-    try:
-        verificar_arquivo("cadastro_produto.txt")
+    conn = get_connection()
+    cursor = conn.cursor()
 
-        id_produto = proximo_sequencial_2("arquivos_cadastro/cadastro_produto.txt")
-        descricao = body.descricao
+    try:
+
+        id_pedido = id
+        id_produto = body.id_produto
+        quantidade_comprada = body.quantidade_comprada
+
+        cursor.execute("""
+            SELECT total_itens, valor_total from pedido
+            WHERE id = %s
+        """, (id_pedido,))
+
+        infos_pedido = cursor.fetchone()
+
+        if not infos_pedido:
+            raise PedidoException(
+                "Pedido não encontrado na base de dados"
+            )
+
+        total_itens = infos_pedido[0]
+        valor_total_banco = float(infos_pedido[1])
+
+        total_itens_pedido = total_itens + 1
+
+        id_e_estoque_valido = Validacoes.id_produto_e_estoque(
+            dtos.PedidoDoProdutoDTO(produto_id=id_produto, quantidade_pedido=quantidade_comprada), cursor=cursor)
+
+        estoque = int(id_e_estoque_valido["qtde_estoque"])
+        preco_unitario = float(id_e_estoque_valido["preco_unitario"])
+
+        novo_estoque = calcular_novo_estoque(qtd_estoque=estoque, qtd_compra=quantidade_comprada)
+
+        total_parcial_pedido = calcular_total_pedido(qtd_compra=quantidade_comprada, preco_unitario=preco_unitario)
+
+        total_final_pedido = total_parcial_pedido + valor_total_banco
+
+        cursor.execute("""
+            UPDATE estoque
+            SET qtd_estoque =%s
+            WHERE id = %s
+        """, (novo_estoque, id_produto))
+
+        cursor.execute("""
+            UPDATE pedido
+            SET valor_total=%s, total_itens = %s
+            WHERE id = %s
+        """, (total_final_pedido, total_itens_pedido, id_pedido))
+
+        cursor.execute("""
+            INSERT INTO itens_pedido(
+            id_produto, id_pedido, qtd_comprada)
+            VALUES(%s, %s, %s)
+        """, (id_produto, id_pedido, quantidade_comprada))
+
+        conn.commit()
+        return "Sucesso"
+
+    except PedidoException as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
+        )
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.put("/alterar/item_pedido/")
+def atualizar_item_pedido(body: dtos.AtualizarItemDTO):
+    """
+    Atualiza um item já existente, em um pedido também já existente.
+
+    Parâmetros:
+        - Deve receber todas as informações para atualizar um item no pedido:
+            - ID do Pedido (Informado via Body)
+            - ID do Produto (Informado via Body)
+            - Nova quantidade comprada do Produto (Informado via Body)
+
+    Execução:
+        - Deve atualizar a tabela de pedido:
+            - Valor total deve ser atualizado de acordo com nova quantidade de itens comprados informado no body
+
+        - Deve atualizar a tabela de estoque:
+            - Nova quantidade disponível em estoque de acordo com a quantidade comprada informada no body
+
+        - Deve atualizar na tabela itens_pedido
+            - Nova quantidade do determinado item comprada.
+
+    Retorna:
+        - Caso tudo ocorra corretamente, deve retornar uma mensagem de sucesso.
+
+    Exceções:
+        - Exception: Exceção genérica somente para acompanhamento
+    """
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+
+        id_pedido = body.id_pedido
+        id_produto = body.id_produto
+        nova_quantidade_comprada = body.quantidade_comprada
+
+        cursor.execute("""
+            SELECT qtd_estoque FROM estoque
+            WHERE id=%s
+        """, (id_produto,))
+
+        infos_estoque = cursor.fetchone()
+
+        cursor.execute("""
+            SELECT qtd_comprada FROM itens_pedido
+            WHERE id_produto = %s and id_pedido = %s
+        """, (id_produto, id_pedido))
+
+        item_pedido = cursor.fetchone()
+
+        if not infos_estoque:
+            raise ProdutoException(
+                "Produto não encontrado na base de dados"
+            )
+
+        qtd_estoque = infos_estoque[0]
+        qtd_comprada_banco = item_pedido[0]
+
+        diferenca = nova_quantidade_comprada - qtd_comprada_banco
+
+        novo_estoque = qtd_estoque - diferenca
+
+        cursor.execute("""
+            UPDATE estoque
+            SET qtd_estoque = %s
+            WHERE id = %s
+        """, (novo_estoque, id_produto,))
+
+        cursor.execute("""
+            UPDATE itens_pedido
+            SET qtd_comprada = %s
+            WHERE id_produto = %s AND id_pedido = %s
+        """, (nova_quantidade_comprada, id_produto, id_pedido,))
+
+        valor_total_atualizado = calcula_total_pedido(cursor, id_pedido)
+
+        cursor.execute("""
+            UPDATE pedido
+            SET valor_total=%s
+            WHERE id = %s
+            """, (valor_total_atualizado, id_pedido,))
+
+        conn.commit()
+        return "Sucesso"
+
+    except ProdutoException as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
+        )
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.delete("/delete/pedido/{id}")
+def delete_pedido(id: int):
+    """
+    Deleta um pedido pelo ID.
+
+    Parâmetros:
+        - id: ID do pedido a ser deletado.
+
+    Retorna:
+        - Caso tudo ocorra corretamente, deve retornar uma mensagem de sucesso.
+
+    Exceções:
+        - PedidoException: Exceção para quando o pedido não for encontrado na base de dados.
+        - Exception: Exceção genérica somente para acompanhamento.
+    """
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT id from pedido where id = %s
+            """, (id,))
+
+        encontrado = cursor.fetchone()
+
+        if not encontrado:
+            raise PedidoException(
+                'Pedido não encontrado'
+            )
+
+        cursor.execute("""
+           DELETE FROM itens_pedido WHERE id_pedido = %s           
+        """, (id,))
+
+        cursor.execute("""
+            DELETE FROM pedido WHERE id = %s
+            """, (id,))
+
+        conn.commit()
+        return "Sucesso"
+
+    except PedidoException as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
+        )
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        ) from e
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.post("/cadastrar/estoque/")
+def cadastrar_estoque(body: dtos.EstoqueDTO):
+    """
+    Cadastra um novo produto na tabela de estoque.
+
+    Parâmetros:
+        - ID do produto (Gerenciado pelo pgadmin)
+        - Nome do produto (Informado via body)
+        - Estoque (Informado via body)
+        - Preço (Informado via body)
+
+    Execução:
+        - Deve inserir na tabela de estoque as informações passadas via body do novo produto.
+
+    Retorna:
+        - Caso tudo ocorra corretamente deve retornar uma mensagem de sucesso.
+
+    Exceções:
+        - ProdutoException: Exceção para qualquer erro que aconteça durante o cadastro do produto.
+        - Exception: Exceção genérica somente para acompanhamento.
+    """
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        nome_produto = body.nome_produto
         estoque = body.estoque
         preco = body.preco
 
-        validar_produto(descricao)
-        validar_estoque(estoque)
-        validar_preco(preco)
-        adicionar_informacoes_arquivo_3(
-            "arquivos_cadastro/cadastro_produto.txt",
-            id_produto,
-            descricao,
-            estoque,
-            preco,
-        )
-        return body
+        Validacoes.cadastro_estoque(qtd_estoque=estoque)
+        Validacoes.cadastro_preco(preco=preco)
+        Validacoes.nome_produto(nome_produto=nome_produto)
+
+        cursor.execute("""
+            INSERT INTO estoque(
+            nome_produto, qtd_estoque, preco_unitario)
+            VALUES (%s, %s, %s)
+        """, (nome_produto, estoque, preco,))
+
+        conn.commit()
+        return "Sucesso"
 
     except ProdutoException as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        )
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+    finally:
+        cursor.close()
+        conn.close()
 
 
-# @app.get("/consulta/produtos")
-# def get_produtos():
-#     """
-#     Consulta todos os produtos cadastrados.
-#
-#     Retorna:
-#         - Uma lista de produtos formatados
-#     """
-#     diretorio = "arquivos_cadastro"
-#     caminho_arquivo = os.path.join(diretorio, "cadastro_produto.txt")
-#
-#     return Consultas.consultar_arquivo(caminho_arquivo)
-
-
-@app.get("/consulta/produtos/{id}")
-def get_produtos_por_id(id: str):
+@app.get("/consulta/estoque/")
+def consultar_estoque():
     """
-    Consulta os produtos baseado no ID inserido na URL
+    Consulta todos os produtos cadastrados no estoque.
 
     Parâmetros:
-        - ID do produto a ser consultado
+        - Não possui pois se trata de uma consulta geral de estoque.
+
+    Execução:
+        - Realiza um SELECT sem WHERE na tabela de estoque, retornando os produtos cadastrados.
 
     Retorna:
-        - Informações do produto com o id correspondente
+        - Os produtos cadastrados na tabela estoque formatados.
 
     Exceções:
-        - HTTP Exception caso haja algum erro durante as buscas por ID
+        - ProdutoException: Esceção para caso não exista nenhum produto cadastrado no estoque.
+        - Exception: Exceção genérica somente para acompanhamento.
+
     """
-    id_produto = id.zfill(10)
+
+    conn = get_connection()
+    cursor = conn.cursor()
 
     try:
-        with open("arquivos_cadastro/cadastro_produto.txt", "r") as arquivo:
-            for linha in arquivo:
-                id_produto_txt = linha[:10]
-                nome_produto_txt = linha[10:60].strip()
-                estoque_produto_txt = linha[60:70].strip()
-                preco_unitario_txt = linha[70:80].strip()
+        cursor.execute("""
+            SELECT * FROM estoque
+            ORDER BY id ASC
+        """)
 
-                if id_produto == id_produto_txt:
-                    retorno_consulta = {
-                        "id_produto": id_produto_txt,
-                        "nome_produto": nome_produto_txt,
-                        "estoque_produto": estoque_produto_txt,
-                        "preco_unitario": preco_unitario_txt,
-                    }
-                    return retorno_consulta
+        estoque = cursor.fetchall()
 
-            raise ProdutoException("Produto não Encontrado")
+        if not estoque:
+            raise ProdutoException(
+                "Nenhum cadastro de produtos encontrado em nosso estoque"
+            )
 
-    except FileNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Arquivo de cadastro não encontrado",
-        )
+        estoque_formatado = [
+            {
+                "id": produto[0],
+                "nome_produto": produto[1],
+                "qtd_estoque": produto[2],
+                "preco_unitario": produto[3],
+
+            }
+            for produto in estoque
+        ]
+
+        return estoque_formatado
+
     except ProdutoException as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
+        )
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
 
+    finally:
+        cursor.close()
+        conn.close()
 
-@app.put("/alterar/produto/{id}")
-def update_produtos(id: int, body: dtos.EstoqueDTO):
+
+@app.get("/consulta/estoque/{id}")
+def consultar_estoque_id(id: str):
     """
-    Altera um produto de acordo com o ID fornecido na URL
+    Consulta um produto específico no cadastro de estoque, de acordo com o ID informado na URL
 
     Parâmetros:
-        - id: ID do produto a ser atualizado
-        - body: Informações do produto para serem atualizados
+        - Recebe o ID do produto inserido na URL.
+
+    Execução:
+        - Realiza um SELECT com WHERE do id_produto, retornando o produto buscado formatado.
 
     Retorna:
-        - Os dados alterados do produto
+        - O produto cadastrado na tabela de estoque formatado.
 
     Exceções:
-        - HTTP Exception caso ocorra algum erro durante os processos de atualização
+        - ProdutoException: Exceção para caso o produto não seja encontrado na tabela de estoque.
+        - Exception: Exceção genérica somente para acompanhamento.
     """
 
+    conn = get_connection()
+    cursor = conn.cursor()
+
     try:
-        conn = get_connection()
-        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM estoque WHERE id = %s", (id,))
+        produto_encontrado = cursor.fetchone()
 
-        validar_produto(body.nome_produto)
-        validar_estoque(body.estoque)
-        validar_preco(body.preco)
+        if not produto_encontrado:
+            raise ProdutoException(
+                "Nenhum produto com o ID fornecido encontrado na base de dados."
+            )
 
-        update_banco = cursor.execute("""
-        UPDATE public.estoque
+        produto_formatado = {
+            "id": produto_encontrado[0],
+            "nome_produto": produto_encontrado[1],
+            "qtd_estoque": produto_encontrado[2],
+            "preco_unitario": produto_encontrado[3]
+        }
+
+        return produto_formatado
+
+    except ProdutoException as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.put("/atualiza/estoque/{id}")
+def atualiza_estoque(id: int, body: dtos.EstoqueDTO):
+    """
+    Atualiza um produto de acordo com o ID fornecido na URL.
+
+    Parâmetros:
+        - ID do Produto cadastrado no estoque que vai ser atualizado
+        - Informações novas do produto informado via body:
+            - nome_produto: Novo nome do produto
+            - qtd_estoque: Nova quantidade em estoque do produto
+            - preco_unitario: Novo preco unitario do produto.
+
+    Retorna:
+        - Caso tudo ocorra corretamente deve retornar uma mensagem de sucesso.
+
+    Exceções:
+        - ProdutoException: Caso alguma validação das novas informações falhe.
+        - Exception: Exceção genérica somente para acompanhamento.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        Validacoes.nome_produto(body.nome_produto)
+        Validacoes.cadastro_estoque(body.estoque)
+        Validacoes.cadastro_preco(body.preco)
+
+        cursor.execute("""
+        UPDATE estoque
             SET nome_produto=%s, qtd_estoque=%s, preco_unitario=%s
             WHERE id = %s;
             """, (body.nome_produto, body.estoque, body.preco, id,))
@@ -671,292 +1015,135 @@ def update_produtos(id: int, body: dtos.EstoqueDTO):
         return body
 
     except ProdutoException as e:
+        conn.rollback()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
-    except HTTPException as e:
-        raise e
     except Exception as e:
+        conn.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         ) from e
 
 
-@app.delete("/delete/produto/{id}")
-def delete_produto(id: str):
+@app.delete("/deleta/produto/{id}")
+def deleta_produto_estoque(id: int):
     """
-    Deleta um produto pelo ID.
+    Deleta um pedido pelo ID informado na URL.
 
     Parâmetros:
-        - id: ID do produto a ser deletado.
+        - ID do produto a ser deletado no estoque.
 
-    Retorna:
-        - Uma mensagem de sucesso.
-
-    Exceções:
-        - HTTPException: Se ocorrer um erro durante a deleção do produto.
-    """
-
-    id_produto = id.rjust(10, "0")
-    try:
-        with open("arquivos_cadastro/cadastro_produto.txt", "r+") as arquivo:
-            linhas = arquivo.readlines()
-            encontrado = False
-            arquivo.seek(0)
-            for linha in linhas:
-                if linha.startswith(id_produto):
-                    encontrado = True
-                    continue
-                arquivo.write(linha)
-                arquivo.truncate()
-
-            if encontrado:
-                return "Sucesso"
-            else:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="ID do produto não encontrado",
-                )
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
-        ) from e
-
-
-@app.put("/alterar/cliente/{id}")
-def update_cliente(id: str, body: dtos.ClienteDTO):
-    """
-    Atualiza as informações de um cliente.
-
-    Parâmetros:
-        - id: ID do cliente a ser atualizado.
-        - body: Objeto ClienteDTO contendo as novas informações do cliente.
-
-    Retorna:
-        - Objeto ClienteDTO do cliente atualizado.
+    Execução:
+        - Valida se o id do produto está vinculado a algum pedido.
+        - Deleta o produto na tabela de estoque.
 
     Exceções:
-        - HTTPException: Se ocorrer um erro durante a atualização do cliente.
+        - ProdutoException: Caso o produto não seja encontrado no estoque ou existam pedidos com esse produto incluso retorna essa exceção.
+        - Exception: Exceção genérica somente para acompanhamento.
     """
-    id_cliente = id.zfill(10)
+
+    conn = get_connection()
+    cursor = conn.cursor()
 
     try:
-        encontrado = False
-        clientes_atualizados = []
-        with open("arquivos_cadastro/cadastro_cliente.txt", "r") as arquivo:
-            linhas = arquivo.readlines()
-            for linha in linhas:
-                if linha.startswith(id_cliente):
-                    encontrado = True
-                    novo_nome = body.nome
-                    novo_cpf = body.cpf
-                    nova_data_nascimento = body.data_nasc
-                    info_adicionais = body.inf_adicionais
+        cursor.execute("""
+            SELECT * from itens_pedido
+            WHERE id_produto = %s
+            """, (id,))
 
-                    validar_nome(novo_nome)
-                    validar_cpf(novo_cpf)
-                    validar_nasc(nova_data_nascimento)
-                    validar_info(info_adicionais)
+        if cursor.rowcount >= 1:
+            raise ProdutoException(
+                "Existem pedidos com esse produto incluso, por gentileza exclua-os antes de continuar."
+            )
 
-                    nova_data_nascimento = nova_data_nascimento.replace("/", "")
+        elif cursor.rowcount == 0:
+            raise ProdutoException(
+                "Produto não encontrado no estoque"
+            )
 
-                    linha = (
-                            id_cliente.ljust(10)
-                            + novo_nome.ljust(40)
-                            + novo_cpf.ljust(11)
-                            + nova_data_nascimento.ljust(8)
-                            + info_adicionais[:30].ljust(30)
-                            + "\n"
-                    )
-                clientes_atualizados.append(linha)
+        cursor.execute("""
+            DELETE FROM estoque
+            where id = %s
+        """, (id,))
 
-            if not encontrado:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Cliente não encontrado",
-                )
+        conn.commit()
+        return "Sucesso"
 
-            with open("arquivos_cadastro/cadastro_cliente.txt", "w") as arquivo:
-                arquivo.writelines(clientes_atualizados)
-
-            return body
-
-    except FileNotFoundError:
+    except ProdutoException as e:
+        conn.rollback()
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Arquivo de cadastro não encontrado",
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
         )
-    except HTTPException as e:
-        raise e
+
     except Exception as e:
+        conn.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.put("/atualiza/cliente/{id}")
+def atualizar_cliente(id: str, body: dtos.AtualizaClienteDTO):
+    """
+    Atualiza os dados cadastrais de um cliente de acordo com o id fornecido na URL.
+
+    Parâmetros:
+        - Recebe o ID do cliente a ser alterado na URL.
+        - Recebe informações para atualizar a tabela de cliente via body
+            - nome: Novo nome a ser atualizado.
+            - data_nasc: Nova data de nascimento a ser atualizada.
+            - inf_adicionais: Nova informação adicional a ser atualizada.
+
+    Execução:
+        - Recebe todas as informações a serem atualizadas e realiza um UPDATE na tabela de clientes,
+        utilizando o ID do cliente no WHERE.
+
+    Retorna:
+        - Caso tudo ocorra corretamente, deve retornar uma mensagem de sucesso.
+
+    Exceção:
+        - Exception: Exceção genérica somente para acompanhamento.
+    """
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    try:
+        nome = body.nome
+        data_nasc = body.data_nasc
+        inf_adicionais = body.inf_adicionais
+
+        Validacoes.nome(nome_cliente=nome)
+        Validacoes.nascimento(data_nasc=data_nasc)
+        Validacoes.info(outras_infos=inf_adicionais)
+
+        cursor.execute("""
+            UPDATE cliente
+            SET nome=%s, data_nasc=%s, info_adicional=%s
+            WHERE id=%s
+        """, (nome, data_nasc, inf_adicionais, id))
+
+        conn.commit()
+        return "Sucesso"
+
+    except (CPFException, DataException, ClienteException) as e:
+        conn.rollback()
+        raise (HTTPException
+               (status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)))
+
+    except Exception as e:
+        conn.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         ) from e
 
-
-class FuncoesAuxiliares:
-
-    @staticmethod
-    def update_pedido(id_pedido, valor_total, total_itens, cursor, ):
-        """
-        Função genérica para dar UPDATE na tabela de pedido nos campos de valor_total e total_itens
-
-        Parâmetros:
-            - id_pedido = ID do pedido a ser alterado
-            - valor_total = Novo valor total do pedido
-            - total_itens = Novo total de itens do pedido
-            - cursor = Utilizado para manter o cursor open
-
-        Retorna:
-            - Se o UPDATE foi um sucesso ou não
-        """
-
-        cursor.execute("""
-            SELECT total_itens, valor_total FROM pedido
-            WHERE id =%s
-        """, id_pedido)
-
-        infos_parciais = cursor.fetchone()
-
-        total_itens_parcial = infos_parciais[0]
-        valor_total_parcial = infos_parciais[1]
-
-        valor_total_definitivo = valor_total_parcial + valor_total
-        quantidade_total_definitiva = total_itens_parcial + total_itens
-
-        cursor.execute("""
-            UPDATE pedido SET valor_total=%s, total_itens=%s
-            WHERE id=%s
-        """, (valor_total_definitivo, quantidade_total_definitiva, id_pedido))
-
-    @staticmethod
-    def calcular_total_pedido(qtd_compra, preco_unitario):
-        """
-        Calcula o total do pedido realizado
-
-        Parâmetros:
-            - id_produto: ID do produto utilizado no calculo
-            - qtd_compra: Quantidade coletada para saber quantos produtos existem na compra
-
-        Retorna:
-            - Um dicionário contendo as informações atualizadas do pedido
-        """
-
-        total_compra = qtd_compra * preco_unitario
-
-        return total_compra
-
-    @staticmethod
-    def adiciona_itens_pedido(id_pedido, produtos: list[dtos.PedidoDoProdutoDTO], cursor):
-        """
-        Insere na tabela de itens_pedido as informações para vincular item-pedido
-
-        Parâmetros:
-            - infos: Informações do item de determinado pedido
-
-        Retorna:
-            - Uma função que insere as informações no banco
-        """
-
-        for produto in produtos:
-            print(f"Inserindo id_produto: {produto.produto_id}")
-            cursor.execute("""
-                INSERT INTO itens_pedido(id_produto, id_pedido, qtd_comprada)
-                VALUES(%s, %s, %s)
-            """, (produto.produto_id, id_pedido, produto.quantidade_pedido))
-
-    @staticmethod
-    def calcular_novo_estoque(qtd_estoque, qtd_compra):
-        """
-        Calcula a nova quantidade disponível em estoque de determinado produto
-
-        Parâmetros:
-            - qtd_estoque: Quantidade total disponível em estoque de determinado produto
-            - qtd_compra: Quantidade total comprada de determinado produto
-
-        Retorna:
-            - A nova quantidade disponível em estoque do produto, após realizar a subtração
-            qtd_estoque - qtd_compra
-        """
-
-        novo_estoque = qtd_estoque - qtd_compra
-
-        return novo_estoque
-
-    @staticmethod
-    def validar_id_pedido(id_pedido, cursor):
-        """
-        Busca na tabela de pedidos se o id inserido durante o update existe.
-
-        Parâmetros:
-            - id_pedido: ID do pedido que será utilizado na função
-            - cursor: Parâmetro passado para não haver necessidade de reabrir o cursor
-
-        Retrna:
-            - Se o ID foi encontrado no SELECT na tabela de pedidos
-        """
-
-        cursor.execute("SELECT * FROM pedido where id = %s", (id_pedido))
-        pedido_existe = cursor.fetchone()
-
-        if not pedido_existe:
-            return False
-        else:
-            return True
-
-    @staticmethod
-    def validar_id_cliente(id_cli, cursor):
-        """
-        Busca na tabela de clientes se o id inserido durante o cadastro de pedido existe.
-
-        Parâmetros:
-            - id_cliente: ID do cliente inserido pelo usuário para buscar na tabela de cliente se existe
-
-        Retorna:
-            - Se o ID foi encontrado no SELECT na tabela de cliente
-        """
-
-        cursor.execute(" SELECT id FROM cliente WHERE id = %s", (id_cli,))
-        cliente_existe = cursor.fetchone()
-
-        if not cliente_existe:
-            return False
-        else:
-            return True
-
-    @staticmethod
-    def validar_id_produto(produto: dtos.PedidoDoProdutoDTO, cursor):
-        """
-        Confere se o produto está cadastrado
-
-
-        """
-        cursor.execute("SELECT * FROM estoque WHERE id = %s", (produto.produto_id,))
-
-        produto_encontrado = cursor.fetchone()
-
-        nome_produto_bd = produto_encontrado[1]
-        quantidade_estoque_bd = produto_encontrado[2]
-        preco_unitario = produto_encontrado[3]
-
-        if not produto_encontrado:
-            raise ProdutoNaoEncontrado(
-                "O id do produto fornecido não foi encontrado na base de dados."
-            )
-
-        if produto.quantidade_pedido > int(quantidade_estoque_bd):
-            raise EstoqueInsuficiente(
-                f"A quantidade de {nome_produto_bd} no seu pedido é superior ao estoque"
-            )
-
-        infos_pedido = {
-            "nome_produto": nome_produto_bd,
-            "qtde_estoque": quantidade_estoque_bd,
-            "qtde_compra": produto.quantidade_pedido,
-            "preco_unitario": preco_unitario,
-        }
-        return infos_pedido
+    finally:
+        cursor.close()
+        conn.close()
 
 
 if __name__ == "__main__":

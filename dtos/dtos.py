@@ -32,10 +32,32 @@ class UpdatePedidoDTO(BaseModel):
     id_pedido: str
     id_novo_produto: Optional[list] = None
     novo_valortotal: Optional[float] = None
-    novo_status:  Optional[str] = None
+    novo_status: Optional[str] = None
 
 
 class ItensPedidoDTO(BaseModel):
     id_pedido: str
     id_produto: str
     quantidade_comprada: int
+
+
+class AdicionarItemDTO(BaseModel):
+    id_produto: int
+    quantidade_comprada: int
+
+
+class AtualizarItemDTO(BaseModel):
+    id_produto: int
+    id_pedido: int
+    quantidade_comprada: int
+
+
+class DeletaEstoqueDTO(BaseModel):
+    id_pedido: int
+    id_produto: int
+
+
+class AtualizaClienteDTO(BaseModel):
+    nome: str
+    data_nasc: str
+    inf_adicionais: str

@@ -133,9 +133,9 @@ class PrecoZeroError(ProdutoException):
     """
 
 
-class DescricaoInvalida(ProdutoException):
+class NomeInvalido(ProdutoException):
     """
-    Excecao para quando a descricao inserida for invalida
+    Excecao para quando o nome inserida for invalida
     """
 
 

@@ -91,27 +91,4 @@ def validar_cliente_id(id_cliente):
     return False
 
 
-def validar_data_pedido(data_pedido: object) -> object:
-    """
-    Confere se a data do pedido é uma data válida (dd/mm/aaaa).
-    """
-    if not re.match(r"^\d{2}/\d{2}/\d{4}$", data_pedido):
-        raise DataInvalida("Este formato de data não é válido")
 
-    dia, mes, ano = map(int, data_pedido.split("/"))
-
-    if not (
-            1 <= dia <= 31
-            and 1 <= mes <= 12
-            and ano >= datetime.datetime.now().year
-            and mes >= datetime.datetime.now().month
-    ):
-        raise DataInvalida("Data Inexistente")
-
-    hoje = datetime.datetime.now().date()
-    data_formatada = datetime.datetime(ano, mes, dia).date()
-    tres_dias_frente = hoje + datetime.timedelta(days=3)
-    if hoje <= data_formatada <= tres_dias_frente:
-        return True
-    else:
-        raise DataFuturaError("Data Ultrapassa o limite de 3 dias")
