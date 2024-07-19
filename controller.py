@@ -1,11 +1,11 @@
-from datetime import datetime
+import datetime
 import re
-from fastapi import FastAPI, status, HTTPException, Request
-from db_connection import get_connection
+from fastapi import status, HTTPException
+from database.db_connection import get_connection
 
-import dtos.dtos as dtos
+from dtos import dtos as dtos
 
-from exceptions.exceptions import (
+from exceptions import (
     ProdutoNaoEncontrado,
     EstoqueInsuficiente,
     DataInvalida,
@@ -98,7 +98,7 @@ class Validacoes:
         return infos_pedido
 
     @staticmethod
-    def data_pedido(data_pedido: object) -> object:
+    def data_pedido(data_pedido: str) -> bool:
         """
         Confere se a data do pedido é uma data válida (dd/mm/aaaa).
         """
@@ -111,12 +111,12 @@ class Validacoes:
                 1 <= dia <= 31
                 and 1 <= mes <= 12
                 and ano >= datetime.datetime.now().year
-                and mes >= datetime.datetime.now().month
+                and (ano > datetime.datetime.now().year or mes >= datetime.datetime.now().month)
         ):
             raise DataInvalida("Data Inexistente")
 
         hoje = datetime.datetime.now().date()
-        data_formatada = datetime.datetime(ano, mes, dia).date()
+        data_formatada = datetime.date(ano, mes, dia)
         tres_dias_frente = hoje + datetime.timedelta(days=3)
         if hoje <= data_formatada <= tres_dias_frente:
             return True
@@ -400,29 +400,3 @@ def calcula_total_pedido(cursor, id_pedido):
     """, (id_pedido,))
     total = cursor.fetchone()[0]
     return total
-
-    """
-    Atualiza um item já existente, em um pedido também já existente.
-
-    Parâmetros:
-        - Deve receber todas as informações para atualizar um item no pedido:
-            - ID do Pedido (Informado via Body)
-            - ID do Produto (Informado via Body)
-            - Nova quantidade comprada do Produto (Informado via Body)
-
-    Execução:
-        - Deve atualizar a tabela de pedido:
-            - Valor total deve ser atualizado de acordo com nova quantidade de itens comprados informado no body
-
-        - Deve atualizar a tabela de estoque:
-            - Nova quantidade disponível em estoque de acordo com a quantidade comprada informada no body
-
-        - Deve atualizar na tabela itens_pedido
-            - Nova quantidade do determinado item comprada.
-
-    Retorna:
-        - Caso tudo ocorra corretamente, deve retornar uma mensagem de sucesso.
-
-    Exceções:
-        - Exception: Exceção genérica somente para acompanhamento
-    """

@@ -57,6 +57,11 @@ class DeletaEstoqueDTO(BaseModel):
     id_produto: int
 
 
+class DeletaItemDTO(BaseModel):
+    id_produto: int
+    id_pedido: int
+
+
 class AtualizaClienteDTO(BaseModel):
     nome: str
     data_nasc: str
